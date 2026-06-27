@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cdw.catalog.adapter.outbound.persistence.codetype.CodeTypeQueryMapper">
+
+    <select id="selectCodeTypeList" resultType="cdw.catalog.adapter.outbound.persistence.codetype.CodeTypeSummaryRow">
+        select
+            mtdt_tbl_id, orgnl_tbl_nm, tbl_nm, src_exst_yn, cd_tbl_yn, reg_yn,
+            cd_type_id, cd_type_nm, cd_type_expln, cd_col_nm, cd_nm_col_nm,
+            assigned_column_count, mdfr_id, mdfcn_dt
+        from v_cd_type_list
+        where mtdt_id = #{mtdtId}
+        order by sort_no asc, orgnl_tbl_nm asc
+    </select>
+
+    <select id="selectCodeTypeCandidates" resultType="cdw.catalog.adapter.outbound.persistence.codetype.CodeTypeSummaryRow">
+        select
+            mtdt_tbl_id, orgnl_tbl_nm, tbl_nm, src_exst_yn, cd_tbl_yn, reg_yn,
+            cd_type_id, cd_type_nm, cd_type_expln, cd_col_nm, cd_nm_col_nm,
+            assigned_column_count, mdfr_id, mdfcn_dt
+        from v_cd_type_candidate
+        where mtdt_id = #{mtdtId}
+        order by sort_no asc, orgnl_tbl_nm asc
+    </select>
+
+</mapper>

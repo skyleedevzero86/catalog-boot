@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobCommandMapper">
+
+  <select id="selectJobById" resultType="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobRow">
+    select * from v_mig_job where mig_job_id = #{migJobId}
+  </select>
+
+  <select id="selectJobTables" resultType="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobTableRow">
+    select * from v_mig_job_tbl where mig_job_id = #{migJobId} order by sort_no asc
+  </select>
+
+  <select id="selectJobs" resultType="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobRow">
+    select * from v_mig_job order by crt_dt desc limit #{limit}
+  </select>
+
+  <update id="resetFailedJobTables" statementType="CALLABLE">
+    {call sp_mig_job_tbl_reset_failed(#{migJobId, mode=IN, jdbcType=VARCHAR})}
+  </update>
+
+  <update id="executeMigJob" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_mig_job(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{migJobId, mode=INOUT, jdbcType=VARCHAR},
+      #{srcLnkgId, mode=IN, jdbcType=VARCHAR},
+      #{trgtLnkgId, mode=IN, jdbcType=VARCHAR},
+      #{mtdtId, mode=IN, jdbcType=VARCHAR},
+      #{srcSchmNm, mode=IN, jdbcType=VARCHAR},
+      #{trgtSchmNm, mode=IN, jdbcType=VARCHAR},
+      #{batchSz, mode=IN, jdbcType=INTEGER},
+      #{dropExstYn, mode=IN, jdbcType=BOOLEAN},
+      #{jobSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{totTblCnt, mode=IN, jdbcType=INTEGER},
+      #{succTblCnt, mode=IN, jdbcType=INTEGER},
+      #{failTblCnt, mode=IN, jdbcType=INTEGER},
+      #{totRowCnt, mode=IN, jdbcType=BIGINT},
+      #{errMsgCn, mode=IN, jdbcType=VARCHAR},
+      #{bgngDt, mode=IN, jdbcType=TIMESTAMP},
+      #{endDt, mode=IN, jdbcType=TIMESTAMP},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeMigJob" databaseId="H2" statementType="CALLABLE">
+    {#{migJobId, mode=OUT, jdbcType=VARCHAR} = call sp_mig_job(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{migJobId, mode=IN, jdbcType=VARCHAR},
+      #{srcLnkgId, mode=IN, jdbcType=VARCHAR},
+      #{trgtLnkgId, mode=IN, jdbcType=VARCHAR},
+      #{mtdtId, mode=IN, jdbcType=VARCHAR},
+      #{srcSchmNm, mode=IN, jdbcType=VARCHAR},
+      #{trgtSchmNm, mode=IN, jdbcType=VARCHAR},
+      #{batchSz, mode=IN, jdbcType=INTEGER},
+      #{dropExstYn, mode=IN, jdbcType=BOOLEAN},
+      #{jobSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{totTblCnt, mode=IN, jdbcType=INTEGER},
+      #{succTblCnt, mode=IN, jdbcType=INTEGER},
+      #{failTblCnt, mode=IN, jdbcType=INTEGER},
+      #{totRowCnt, mode=IN, jdbcType=BIGINT},
+      #{errMsgCn, mode=IN, jdbcType=VARCHAR},
+      #{bgngDt, mode=IN, jdbcType=TIMESTAMP},
+      #{endDt, mode=IN, jdbcType=TIMESTAMP},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeMigJobTbl" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_mig_job_tbl(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{migJobTblId, mode=INOUT, jdbcType=VARCHAR},
+      #{migJobId, mode=IN, jdbcType=VARCHAR},
+      #{tblNm, mode=IN, jdbcType=VARCHAR},
+      #{tblSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{rowCnt, mode=IN, jdbcType=BIGINT},
+      #{batchCnt, mode=IN, jdbcType=INTEGER},
+      #{crtTblDdlCn, mode=IN, jdbcType=CLOB},
+      #{errMsgCn, mode=IN, jdbcType=VARCHAR},
+      #{bgngDt, mode=IN, jdbcType=TIMESTAMP},
+      #{endDt, mode=IN, jdbcType=TIMESTAMP},
+      #{sortNo, mode=IN, jdbcType=INTEGER}
+    )}
+  </update>
+
+  <update id="executeMigJobTbl" databaseId="H2" statementType="CALLABLE">
+    {#{migJobTblId, mode=OUT, jdbcType=VARCHAR} = call sp_mig_job_tbl(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{migJobTblId, mode=IN, jdbcType=VARCHAR},
+      #{migJobId, mode=IN, jdbcType=VARCHAR},
+      #{tblNm, mode=IN, jdbcType=VARCHAR},
+      #{tblSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{rowCnt, mode=IN, jdbcType=BIGINT},
+      #{batchCnt, mode=IN, jdbcType=INTEGER},
+      #{crtTblDdlCn, mode=IN, jdbcType=CLOB},
+      #{errMsgCn, mode=IN, jdbcType=VARCHAR},
+      #{bgngDt, mode=IN, jdbcType=TIMESTAMP},
+      #{endDt, mode=IN, jdbcType=TIMESTAMP},
+      #{sortNo, mode=IN, jdbcType=INTEGER}
+    )}
+  </update>
+
+</mapper>
