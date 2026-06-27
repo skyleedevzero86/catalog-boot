@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cdw.catalog.adapter.outbound.persistence.connection.ConnectionCommandMapper">
+
+  <select id="selectById" resultType="cdw.catalog.adapter.outbound.persistence.connection.ConnectionProfileRow">
+    select * from v_lnkg_profile where lnkg_id = #{lnkgId}
+  </select>
+
+  <select id="selectActiveList" resultType="cdw.catalog.adapter.outbound.persistence.connection.ConnectionProfileRow">
+    select * from v_lnkg_profile order by crt_dt desc
+  </select>
+
+  <select id="existsByName" resultType="boolean">
+    select case when count(1) > 0 then true else false end
+    from v_lnkg_profile
+    where lnkg_nm = #{name}
+    <if test="excludeId != null">
+      and lnkg_id &lt;&gt; #{excludeId}
+    </if>
+  </select>
+
+  <update id="executeLnkgProfile" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_lnkg_profile(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{lnkgId, mode=INOUT, jdbcType=VARCHAR},
+      #{lnkgNm, mode=IN, jdbcType=VARCHAR},
+      #{dbTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{srvrAddr, mode=IN, jdbcType=VARCHAR},
+      #{srvrPortNo, mode=IN, jdbcType=INTEGER},
+      #{dbNm, mode=IN, jdbcType=VARCHAR},
+      #{schmNm, mode=IN, jdbcType=VARCHAR},
+      #{lnkgExpln, mode=IN, jdbcType=VARCHAR},
+      #{acntId, mode=IN, jdbcType=VARCHAR},
+      #{enpswd, mode=IN, jdbcType=CLOB},
+      #{useYn, mode=IN, jdbcType=BOOLEAN},
+      #{lnkgSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{testRsltCd, mode=IN, jdbcType=VARCHAR},
+      #{lastTestDt, mode=IN, jdbcType=TIMESTAMP},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeLnkgProfile" databaseId="H2" statementType="CALLABLE">
+    {#{lnkgId, mode=OUT, jdbcType=VARCHAR} = call sp_lnkg_profile(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{lnkgId, mode=IN, jdbcType=VARCHAR},
+      #{lnkgNm, mode=IN, jdbcType=VARCHAR},
+      #{dbTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{srvrAddr, mode=IN, jdbcType=VARCHAR},
+      #{srvrPortNo, mode=IN, jdbcType=INTEGER},
+      #{dbNm, mode=IN, jdbcType=VARCHAR},
+      #{schmNm, mode=IN, jdbcType=VARCHAR},
+      #{lnkgExpln, mode=IN, jdbcType=VARCHAR},
+      #{acntId, mode=IN, jdbcType=VARCHAR},
+      #{enpswd, mode=IN, jdbcType=CLOB},
+      #{useYn, mode=IN, jdbcType=BOOLEAN},
+      #{lnkgSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{testRsltCd, mode=IN, jdbcType=VARCHAR},
+      #{lastTestDt, mode=IN, jdbcType=TIMESTAMP},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+</mapper>

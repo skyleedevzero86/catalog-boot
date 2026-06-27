@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cdw.catalog.adapter.outbound.persistence.metadata.MetaCommandMapper">
+
+  <select id="selectMetaSetById" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaSetRow">
+    select * from t_mtdt_set where mtdt_id = #{mtdtId}
+  </select>
+
+  <select id="selectSourceTablesByMtdtId" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
+    select * from t_mtdt_tbl
+    where mtdt_id = #{mtdtId}
+      and tbl_type_cd = 'SOURCE'
+    order by sort_no asc, orgnl_tbl_nm asc
+  </select>
+
+  <select id="selectSourceTableByOriginalName" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
+    select * from t_mtdt_tbl
+    where mtdt_id = #{mtdtId}
+      and orgnl_tbl_nm = #{orgnlTblNm}
+      and tbl_type_cd = 'SOURCE'
+  </select>
+
+  <select id="selectMetaTableById" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
+    select * from t_mtdt_tbl where mtdt_tbl_id = #{mtdtTblId}
+  </select>
+
+  <update id="executeMtdtSet" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_mtdt_set(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{mtdtId, mode=INOUT, jdbcType=VARCHAR},
+      #{lnkgId, mode=IN, jdbcType=VARCHAR},
+      #{mtdtNm, mode=IN, jdbcType=VARCHAR},
+      #{mtdtExpln, mode=IN, jdbcType=VARCHAR},
+      #{lastSyncDt, mode=IN, jdbcType=TIMESTAMP},
+      #{lastSyncSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{lastSyncMsgCn, mode=IN, jdbcType=VARCHAR},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeMtdtTbl" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_mtdt_tbl(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{mtdtTblId, mode=INOUT, jdbcType=VARCHAR},
+      #{mtdtId, mode=IN, jdbcType=VARCHAR},
+      #{orgnlTblNm, mode=IN, jdbcType=VARCHAR},
+      #{tblNm, mode=IN, jdbcType=VARCHAR},
+      #{tblExpln, mode=IN, jdbcType=VARCHAR},
+      #{orgnlTblExpln, mode=IN, jdbcType=VARCHAR},
+      #{sortNo, mode=IN, jdbcType=INTEGER},
+      #{expsrYn, mode=IN, jdbcType=BOOLEAN},
+      #{srcExstYn, mode=IN, jdbcType=BOOLEAN},
+      #{useYn, mode=IN, jdbcType=BOOLEAN},
+      #{cdTblYn, mode=IN, jdbcType=BOOLEAN},
+      #{tblTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+</mapper>

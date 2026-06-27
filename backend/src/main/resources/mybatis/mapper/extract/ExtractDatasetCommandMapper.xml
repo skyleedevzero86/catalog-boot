@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cdw.catalog.adapter.outbound.persistence.extract.ExtractDatasetCommandMapper">
+
+  <select id="selectDatstById" resultType="cdw.catalog.adapter.outbound.persistence.extract.ExtractDatasetRow">
+    select extr_datst_id, extr_dmnd_id, extr_datst_stts_cd, mnfst_cn
+    from v_extr_datst
+    where extr_datst_id = #{extrDatstId}
+  </select>
+
+  <update id="executeExtrDmnd" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_extr_dmnd(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{extrDmndId, mode=INOUT, jdbcType=VARCHAR},
+      #{dmndSrcCd, mode=IN, jdbcType=VARCHAR},
+      #{extrDmndNm, mode=IN, jdbcType=VARCHAR},
+      #{extrDmndSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{datstCnt, mode=IN, jdbcType=INTEGER},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeExtrDmnd" databaseId="H2" statementType="CALLABLE">
+    {#{extrDmndId, mode=OUT, jdbcType=VARCHAR} = call sp_extr_dmnd(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{extrDmndId, mode=IN, jdbcType=VARCHAR},
+      #{dmndSrcCd, mode=IN, jdbcType=VARCHAR},
+      #{extrDmndNm, mode=IN, jdbcType=VARCHAR},
+      #{extrDmndSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{datstCnt, mode=IN, jdbcType=INTEGER},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeExtrDatst" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_extr_datst(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{extrDatstId, mode=INOUT, jdbcType=VARCHAR},
+      #{extrDmndId, mode=IN, jdbcType=VARCHAR},
+      #{extrSpcfId, mode=IN, jdbcType=VARCHAR},
+      #{datstNm, mode=IN, jdbcType=VARCHAR},
+      #{extrDatstSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{sortNo, mode=IN, jdbcType=INTEGER},
+      #{mnfstCn, mode=IN, jdbcType=VARCHAR},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeExtrDatst" databaseId="H2" statementType="CALLABLE">
+    {#{extrDatstId, mode=OUT, jdbcType=VARCHAR} = call sp_extr_datst(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{extrDatstId, mode=IN, jdbcType=VARCHAR},
+      #{extrDmndId, mode=IN, jdbcType=VARCHAR},
+      #{extrSpcfId, mode=IN, jdbcType=VARCHAR},
+      #{datstNm, mode=IN, jdbcType=VARCHAR},
+      #{extrDatstSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{sortNo, mode=IN, jdbcType=INTEGER},
+      #{mnfstCn, mode=IN, jdbcType=VARCHAR},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeExtrExcn" databaseId="PostgreSQL" statementType="CALLABLE">
+    {call sp_extr_excn(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{extrExcnId, mode=INOUT, jdbcType=VARCHAR},
+      #{extrDatstId, mode=IN, jdbcType=VARCHAR},
+      #{excnTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{excnSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{rsltNocs, mode=IN, jdbcType=BIGINT},
+      #{rsltStrgTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{rsltTblNm, mode=IN, jdbcType=VARCHAR},
+      #{rsltFilePath, mode=IN, jdbcType=VARCHAR},
+      #{failCn, mode=IN, jdbcType=VARCHAR},
+      #{excnReqCn, mode=IN, jdbcType=VARCHAR},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeExtrExcn" databaseId="H2" statementType="CALLABLE">
+    {#{extrExcnId, mode=OUT, jdbcType=VARCHAR} = call sp_extr_excn(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{extrExcnId, mode=IN, jdbcType=VARCHAR},
+      #{extrDatstId, mode=IN, jdbcType=VARCHAR},
+      #{excnTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{excnSttsCd, mode=IN, jdbcType=VARCHAR},
+      #{rsltNocs, mode=IN, jdbcType=BIGINT},
+      #{rsltStrgTypeCd, mode=IN, jdbcType=VARCHAR},
+      #{rsltTblNm, mode=IN, jdbcType=VARCHAR},
+      #{rsltFilePath, mode=IN, jdbcType=VARCHAR},
+      #{failCn, mode=IN, jdbcType=VARCHAR},
+      #{excnReqCn, mode=IN, jdbcType=VARCHAR},
+      #{actorId, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+</mapper>

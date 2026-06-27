@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryQueryMapper">
+
+    <select id="existsSiblingName" resultType="boolean">
+        select case when count(1) > 0 then true else false end
+        from t_mtdt_tbl_ctgr
+        where mtdt_id = #{mtdtId}
+          and lower(ctgr_nm) = lower(#{ctgrNm})
+        <choose>
+            <when test="parentId == null">
+          and up_mtdt_tbl_ctgr_id is null
+            </when>
+            <otherwise>
+          and up_mtdt_tbl_ctgr_id = #{parentId}
+            </otherwise>
+        </choose>
+        <if test="excludeId != null">
+          and mtdt_tbl_ctgr_id &lt;&gt; #{excludeId}
+        </if>
+    </select>
+
+    <select id="selectCategoryTableMappings" resultType="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryMappingRow">
+        select
+            mtdt_tbl_ctgr_mpng_id, mtdt_tbl_ctgr_id, mtdt_tbl_id,
+            orgnl_tbl_nm, tbl_nm, tbl_expln, sort_no, expsr_yn, src_exst_yn, tbl_type_cd
+        from v_mtdt_tbl_ctgr_mpng
+        where mtdt_tbl_ctgr_id = #{mtdtTblCtgrId}
+        order by sort_no asc, mtdt_tbl_id asc
+    </select>
+
+</mapper>
