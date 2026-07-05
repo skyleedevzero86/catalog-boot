@@ -1,7 +1,7 @@
 package com.sleekydz86.catalog.adapter.outbound.crypto;
 
 
-import com.sleekydz86.catalog.domain.connection.port.SecretCipherPort;
+import com.sleekydz86.catalog.domain.connection.port.out.SecretCipherPort;
 import com.sleekydz86.catalog.global.config.ConnectionModuleProperties;
 import org.springframework.stereotype.Component;
 import javax.crypto.Cipher;

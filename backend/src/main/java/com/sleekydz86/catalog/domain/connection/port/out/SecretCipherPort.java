@@ -1,4 +1,4 @@
-package com.sleekydz86.catalog.domain.connection.port;
+package com.sleekydz86.catalog.domain.connection.port.out;
 
 public interface SecretCipherPort {
     String encrypt(String rawSecret);

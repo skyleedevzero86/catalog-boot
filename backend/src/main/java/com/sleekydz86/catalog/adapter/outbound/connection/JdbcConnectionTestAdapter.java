@@ -2,7 +2,7 @@ package com.sleekydz86.catalog.adapter.outbound.connection;
 
 import com.sleekydz86.catalog.domain.connection.model.ConnectionHealthStatus;
 import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
-import com.sleekydz86.catalog.domain.connection.port.ConnectionTestPort;
+import com.sleekydz86.catalog.domain.connection.port.out.ConnectionTestPort;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;

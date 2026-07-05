@@ -1,4 +1,4 @@
-package com.sleekydz86.catalog.domain.connection.port;
+package com.sleekydz86.catalog.domain.connection.port.out;
 
 import com.sleekydz86.catalog.domain.connection.model.ConnectionHealthStatus;
 import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
