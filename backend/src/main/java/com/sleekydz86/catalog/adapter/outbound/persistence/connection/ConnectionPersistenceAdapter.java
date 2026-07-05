@@ -2,7 +2,7 @@ package com.sleekydz86.catalog.adapter.outbound.persistence.connection;
 
 import com.sleekydz86.catalog.domain.connection.model.ConnectionLifecycleStatus;
 import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
-import com.sleekydz86.catalog.domain.connection.port.ConnectionPersistencePort;
+import com.sleekydz86.catalog.domain.connection.port.out.ConnectionPersistencePort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;

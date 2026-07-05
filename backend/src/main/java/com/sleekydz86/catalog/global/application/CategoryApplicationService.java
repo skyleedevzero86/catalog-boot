@@ -1,9 +1,10 @@
 package com.sleekydz86.catalog.global.application;
 
+
 import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
+import com.sleekydz86.catalog.domain.connection.model.UpdateConnectionCommand;
 import com.sleekydz86.catalog.domain.connection.model.CreateConnectionCommand;
 import com.sleekydz86.catalog.domain.connection.model.DeleteConnectionCommand;
-import com.sleekydz86.catalog.domain.connection.model.UpdateConnectionCommand;
 import com.sleekydz86.catalog.domain.connection.port.out.ConnectionPersistencePort;
 import com.sleekydz86.catalog.domain.connection.service.ConnectionCommandService;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;

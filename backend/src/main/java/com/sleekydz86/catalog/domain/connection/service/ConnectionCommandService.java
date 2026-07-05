@@ -2,9 +2,9 @@ package com.sleekydz86.catalog.domain.connection.service;
 
 
 import com.sleekydz86.catalog.domain.connection.model.*;
-import com.sleekydz86.catalog.domain.connection.port.ConnectionPersistencePort;
-import com.sleekydz86.catalog.domain.connection.port.ConnectionTestPort;
-import com.sleekydz86.catalog.domain.connection.port.SecretCipherPort;
+import com.sleekydz86.catalog.domain.connection.port.out.ConnectionPersistencePort;
+import com.sleekydz86.catalog.domain.connection.port.out.ConnectionTestPort;
+import com.sleekydz86.catalog.domain.connection.port.out.SecretCipherPort;
 import com.sleekydz86.catalog.global.exception.ResourceConflictException;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
 
