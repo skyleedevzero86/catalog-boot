@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobCommandMapper">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.persistence.migration.MigrationJobCommandMapper">
 
   <select id="selectJobById" resultType="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobRow">
     select * from v_mig_job where mig_job_id = #{migJobId}
   </select>
 
-  <select id="selectJobTables" resultType="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobTableRow">
+  <select id="selectJobTables" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.migration.MigrationJobTableRow">
     select * from v_mig_job_tbl where mig_job_id = #{migJobId} order by sort_no asc
   </select>
 
-  <select id="selectJobs" resultType="cdw.catalog.adapter.outbound.persistence.migration.MigrationJobRow">
+  <select id="selectJobs" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.migration.MigrationJobRow">
     select * from v_mig_job order by crt_dt desc limit #{limit}
   </select>
 

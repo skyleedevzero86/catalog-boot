@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryQueryMapper">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryQueryMapper">
 
     <select id="existsSiblingName" resultType="boolean">
         select case when count(1) > 0 then true else false end
@@ -20,7 +20,7 @@
         </if>
     </select>
 
-    <select id="selectCategoryTableMappings" resultType="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryMappingRow">
+    <select id="selectCategoryTableMappings" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryMappingRow">
         select
             mtdt_tbl_ctgr_mpng_id, mtdt_tbl_ctgr_id, mtdt_tbl_id,
             orgnl_tbl_nm, tbl_nm, tbl_expln, sort_no, expsr_yn, src_exst_yn, tbl_type_cd

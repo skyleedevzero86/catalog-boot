@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cdw.catalog.adapter.outbound.persistence.metadata.MetaCommandMapper">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaCommandMapper">
 
-  <select id="selectMetaSetById" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaSetRow">
+  <select id="selectMetaSetById" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaSetRow">
     select * from t_mtdt_set where mtdt_id = #{mtdtId}
   </select>
 
-  <select id="selectSourceTablesByMtdtId" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
+  <select id="selectSourceTablesByMtdtId" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
     select * from t_mtdt_tbl
     where mtdt_id = #{mtdtId}
       and tbl_type_cd = 'SOURCE'
     order by sort_no asc, orgnl_tbl_nm asc
   </select>
 
-  <select id="selectSourceTableByOriginalName" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
+  <select id="selectSourceTableByOriginalName" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
     select * from t_mtdt_tbl
     where mtdt_id = #{mtdtId}
       and orgnl_tbl_nm = #{orgnlTblNm}
       and tbl_type_cd = 'SOURCE'
   </select>
 
-  <select id="selectMetaTableById" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
+  <select id="selectMetaTableById" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaTableRow">
     select * from t_mtdt_tbl where mtdt_tbl_id = #{mtdtTblId}
   </select>
 
