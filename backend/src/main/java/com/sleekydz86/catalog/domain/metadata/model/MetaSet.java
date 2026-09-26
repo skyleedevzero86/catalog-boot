@@ -1,6 +1,5 @@
 package com.sleekydz86.catalog.domain.metadata.model;
 
-
 import java.time.Instant;
 
 public record MetaSet(
