@@ -14,14 +14,7 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      # frontend / backend 각각 Release PR + GitHub Release(tag) 생성
-      # - frontend-vX.Y.Z
-      # - backend-vX.Y.Z
-      # main에 feat/fix 커밋이 쌓이면 Release PR이 생기고,
-      # 그 PR을 머지해야 Releases 탭에 버전이 나타난다.
       - uses: googleapis/release-please-action@v4
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-          # Release PR 머지 후 다른 Actions까지 이어서 돌리려면 PAT 사용:
-          # token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
