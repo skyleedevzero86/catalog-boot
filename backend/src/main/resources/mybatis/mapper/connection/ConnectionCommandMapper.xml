@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cdw.catalog.adapter.outbound.persistence.connection.ConnectionCommandMapper">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.persistence.connection.ConnectionCommandMapper">
 
   <select id="selectById" resultType="cdw.catalog.adapter.outbound.persistence.connection.ConnectionProfileRow">
     select * from v_lnkg_profile where lnkg_id = #{lnkgId}
   </select>
 
-  <select id="selectActiveList" resultType="cdw.catalog.adapter.outbound.persistence.connection.ConnectionProfileRow">
+  <select id="selectActiveList" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.connection.ConnectionProfileRow">
     select * from v_lnkg_profile order by crt_dt desc
   </select>
 

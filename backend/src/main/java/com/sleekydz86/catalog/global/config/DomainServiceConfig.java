@@ -1,9 +1,12 @@
 package com.sleekydz86.catalog.global.config;
 
-import com.sleekydz86.catalog.domain.connection.port.out.ConnectionPersistencePort;
-import com.sleekydz86.catalog.domain.connection.port.out.ConnectionTestPort;
-import com.sleekydz86.catalog.domain.connection.port.out.SecretCipherPort;
+import com.sleekydz86.catalog.domain.category.port.out.CategoryPersistencePort;
+import com.sleekydz86.catalog.domain.category.service.CategoryCommandService;
+import com.sleekydz86.catalog.domain.connection.port.out.*;
 import com.sleekydz86.catalog.domain.connection.service.ConnectionCommandService;
+import com.sleekydz86.catalog.domain.metadata.port.out.MetaPersistencePort;
+import com.sleekydz86.catalog.domain.metadata.service.MetaSyncService;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceMetadataPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -55,15 +58,15 @@ public class DomainServiceConfig {
 
     @Bean
     CategoryCommandService categoryCommandService(
-            cdw.catalog.domain.category.port.out.CategoryPersistencePort categoryPersistencePort,
-            cdw.catalog.domain.metadata.port.out.MetaPersistencePort metaPersistencePort
+            CategoryPersistencePort categoryPersistencePort,
+            MetaPersistencePort metaPersistencePort
     ) {
         return new CategoryCommandService(categoryPersistencePort, metaPersistencePort);
     }
 
     @Bean
     MetaSyncService metaSyncService(
-            cdw.catalog.domain.metadata.port.out.MetaPersistencePort metaPersistencePort,
+            MetaPersistencePort metaPersistencePort,
             ConnectionPersistencePort connectionPersistencePort,
             SourceMetadataPort sourceMetadataPort,
             SecretCipherPort secretCipherPort
@@ -73,7 +76,7 @@ public class DomainServiceConfig {
 
     @Bean
     ExtractRequestCommandService extractRequestCommandService(
-            cdw.catalog.domain.extract.port.out.ExtractWorkerPort extractWorkerPort
+            ExtractWorkerPort extractWorkerPort
     ) {
         return new ExtractRequestCommandService(extractWorkerPort);
     }

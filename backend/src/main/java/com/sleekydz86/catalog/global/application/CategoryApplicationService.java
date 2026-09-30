@@ -1,54 +1,58 @@
 package com.sleekydz86.catalog.global.application;
 
 
-import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
-import com.sleekydz86.catalog.domain.connection.model.UpdateConnectionCommand;
-import com.sleekydz86.catalog.domain.connection.model.CreateConnectionCommand;
-import com.sleekydz86.catalog.domain.connection.model.DeleteConnectionCommand;
-import com.sleekydz86.catalog.domain.connection.port.out.ConnectionPersistencePort;
-import com.sleekydz86.catalog.domain.connection.service.ConnectionCommandService;
-import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
+import com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryMappingRow;
+import com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryQueryMapper;
+import com.sleekydz86.catalog.domain.category.model.*;
+import com.sleekydz86.catalog.domain.category.port.out.CategoryPersistencePort;
+import com.sleekydz86.catalog.domain.category.service.CategoryCommandService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
-public class ConnectionApplicationService {
+public class CategoryApplicationService {
 
-    private final ConnectionCommandService connectionCommandService;
-    private final ConnectionPersistencePort connectionPersistencePort;
+    private final CategoryCommandService categoryCommandService;
+    private final CategoryPersistencePort categoryPersistencePort;
+    private final MetaTableCategoryQueryMapper categoryQueryMapper;
 
-    public ConnectionApplicationService(
-            ConnectionCommandService connectionCommandService,
-            ConnectionPersistencePort connectionPersistencePort
+    public CategoryApplicationService(
+            CategoryCommandService categoryCommandService,
+            CategoryPersistencePort categoryPersistencePort,
+            MetaTableCategoryQueryMapper categoryQueryMapper
     ) {
-        this.connectionCommandService = connectionCommandService;
-        this.connectionPersistencePort = connectionPersistencePort;
+        this.categoryCommandService = categoryCommandService;
+        this.categoryPersistencePort = categoryPersistencePort;
+        this.categoryQueryMapper = categoryQueryMapper;
     }
 
     @Transactional
-    public ConnectionProfile create(CreateConnectionCommand command) {
-        return connectionCommandService.handle(command);
+    public MetaTableCategory create(CreateCategoryCommand command) {
+        return categoryCommandService.handle(command);
     }
 
     @Transactional
-    public ConnectionProfile update(UpdateConnectionCommand command) {
-        return connectionCommandService.handle(command);
+    public MetaTableCategory update(UpdateCategoryCommand command) {
+        return categoryCommandService.handle(command);
     }
 
     @Transactional
-    public ConnectionProfile delete(DeleteConnectionCommand command) {
-        return connectionCommandService.handle(command);
+    public void delete(DeleteCategoryCommand command) {
+        categoryCommandService.handle(command);
     }
 
-    public List<ConnectionProfile> list() {
-        return connectionPersistencePort.findAllActive();
+    @Transactional
+    public List<String> mapTables(MapCategoryTableCommand command) {
+        return categoryCommandService.handle(command);
     }
 
-    public ConnectionProfile get(String connectionId) {
-        return connectionPersistencePort.findById(connectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("연결을 찾을 수 없습니다: " + connectionId));
+    public List<MetaTableCategory> list(String mtdtId) {
+        return categoryPersistencePort.findCategoriesByMtdtId(mtdtId);
+    }
+
+    public List<MetaTableCategoryMappingRow> listMappings(String categoryId) {
+        return categoryQueryMapper.selectCategoryTableMappings(categoryId);
     }
 }

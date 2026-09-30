@@ -11,16 +11,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -32,13 +31,16 @@ public class MigrationController {
 
     private final MigrationApplicationService migrationApplicationService;
     private final MigrationJobApplicationService migrationJobApplicationService;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     public MigrationController(
             MigrationApplicationService migrationApplicationService,
-            MigrationJobApplicationService migrationJobApplicationService
+            MigrationJobApplicationService migrationJobApplicationService,
+            AuthenticatedUserProvider authenticatedUserProvider
     ) {
         this.migrationApplicationService = migrationApplicationService;
         this.migrationJobApplicationService = migrationJobApplicationService;
+        this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
     @PostMapping("/ddl/preview")
@@ -74,8 +76,7 @@ public class MigrationController {
     @OpenApiResponses
     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = LoadTableResult.class)))
     public LoadTableResult loadTable(
-            @RequestBody LoadTableRequest request,
-            @UserIdHeader @RequestHeader(value = "userId", required = false) String userIdHeader
+            @RequestBody LoadTableRequest request
     ) {
         return migrationApplicationService.loadTable(
                 request.sourceConnectionId(),
@@ -85,7 +86,7 @@ public class MigrationController {
                 request.tableName(),
                 request.batchSize() == null ? 500 : request.batchSize(),
                 request.dropExisting() == null || request.dropExisting(),
-                actor(userIdHeader)
+                authenticatedUserProvider.currentUserId()
         );
     }
 
@@ -102,8 +103,7 @@ public class MigrationController {
     @OpenApiResponses
     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = MigrationJobResponse.class)))
     public MigrationJobResponse startBatchLoad(
-            @RequestBody BatchLoadRequest request,
-            @UserIdHeader @RequestHeader(value = "userId", required = false) String userIdHeader
+            @RequestBody BatchLoadRequest request
     ) {
         MigrationJob job = migrationJobApplicationService.startBatchMigration(new StartBatchMigrationCommand(
                 request.sourceConnectionId(),
@@ -114,7 +114,7 @@ public class MigrationController {
                 request.tableNames(),
                 request.batchSize() == null ? 500 : request.batchSize(),
                 request.dropExisting() == null || request.dropExisting(),
-                actor(userIdHeader)
+                authenticatedUserProvider.currentUserId()
         ));
         return MigrationJobResponse.from(job);
     }
@@ -190,10 +190,6 @@ public class MigrationController {
         return migrationJobApplicationService.getJobTables(jobId).stream()
                 .map(MigrationJobTableResponse::from)
                 .toList();
-    }
-
-    private String actor(String userIdHeader) {
-        return StringUtils.hasText(userIdHeader) ? userIdHeader.trim() : "system";
     }
 
     @Schema(name = "PreviewDdlRequest", description = "DDL 미리보기 요청")

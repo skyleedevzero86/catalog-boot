@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableQueryMapper">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaTableQueryMapper">
 
-    <select id="selectTableList" resultType="cdw.catalog.adapter.outbound.persistence.metadata.MetaTableListRow">
+    <select id="selectTableList" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.metadata.MetaTableListRow">
         select
             mtdt_tbl_id, mtdt_id, orgnl_tbl_nm, tbl_nm, tbl_expln, orgnl_tbl_expln,
             sort_no, expsr_yn, src_exst_yn, use_yn, cd_tbl_yn, tbl_type_cd,

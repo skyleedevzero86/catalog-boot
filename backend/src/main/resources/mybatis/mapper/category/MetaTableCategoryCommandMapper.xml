@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryCommandMapper">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryCommandMapper">
 
-  <select id="selectCategoryById" resultType="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryRow">
+  <select id="selectCategoryById" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryRow">
     select * from t_mtdt_tbl_ctgr where mtdt_tbl_ctgr_id = #{mtdtTblCtgrId}
   </select>
 
-  <select id="selectCategoriesByMtdtId" resultType="cdw.catalog.adapter.outbound.persistence.category.MetaTableCategoryRow">
+  <select id="selectCategoriesByMtdtId" resultType="com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryRow">
     select * from t_mtdt_tbl_ctgr
     where mtdt_id = #{mtdtId}
     order by sort_no asc, ctgr_nm asc
