@@ -1,6 +1,16 @@
 package com.sleekydz86.catalog.adapter.inbound.web.migration;
 
+import com.sleekydz86.catalog.domain.migration.model.LoadTableResult;
+import com.sleekydz86.catalog.domain.migration.model.StartBatchMigrationCommand;
+import com.sleekydz86.catalog.domain.migration.model.MigrationJob;
+import com.sleekydz86.catalog.domain.migration.model.MigrationJobStatus;
+import com.sleekydz86.catalog.domain.migration.model.MigrationJobTable;
+import com.sleekydz86.catalog.domain.migration.model.MigrationTableStatus;
+import com.sleekydz86.catalog.domain.migration.model.TargetDdlPreview;
+import com.sleekydz86.catalog.global.application.MigrationApplicationService;
+import com.sleekydz86.catalog.global.application.MigrationJobApplicationService;
 import com.sleekydz86.catalog.global.config.openapi.OpenApiResponses;
+import com.sleekydz86.catalog.global.security.AuthenticatedUserProvider;
 import com.sleekydz86.catalog.global.config.openapi.UserIdHeader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

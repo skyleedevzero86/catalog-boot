@@ -1,8 +1,8 @@
 package com.sleekydz86.catalog.adapter.outbound.jdbc;
 
-mport org.springframework.stereotype.Component;
-
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceDataReaderPort;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceTableBatchReader;
 import com.sleekydz86.catalog.global.config.MigrationJdbcProperties;
 import org.springframework.stereotype.Component;
 

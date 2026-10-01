@@ -5,6 +5,7 @@ import com.sleekydz86.catalog.domain.migration.model.MigrationJob;
 import com.sleekydz86.catalog.domain.migration.model.MigrationJobStatus;
 import com.sleekydz86.catalog.domain.migration.model.MigrationJobTable;
 import com.sleekydz86.catalog.domain.migration.model.StartBatchMigrationCommand;
+import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

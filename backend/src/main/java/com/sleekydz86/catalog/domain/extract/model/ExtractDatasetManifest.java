@@ -1,5 +1,6 @@
 package com.sleekydz86.catalog.domain.extract.model;
 
+import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

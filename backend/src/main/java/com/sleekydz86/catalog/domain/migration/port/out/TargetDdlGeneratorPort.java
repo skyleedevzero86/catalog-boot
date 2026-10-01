@@ -5,10 +5,5 @@ import com.sleekydz86.catalog.domain.migration.model.TableSchema;
 
 public interface TargetDdlGeneratorPort {
 
-    String generateCreateTable(
-            DatabaseVendor sourceVendor,
-            DatabaseVendor targetVendor,
-            String targetSchema,
-            TableSchema sourceTable
-    );
+    String generateCreateTableDdl(DatabaseVendor targetVendor, String targetSchema, TableSchema tableSchema);
 }

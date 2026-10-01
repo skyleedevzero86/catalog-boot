@@ -3,6 +3,7 @@ package com.sleekydz86.catalog.adapter.outbound.jdbc;
 
 import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceTableBatchReader;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

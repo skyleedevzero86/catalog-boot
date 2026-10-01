@@ -1,5 +1,6 @@
 package com.sleekydz86.catalog.adapter.outbound.jdbc;
 
+import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

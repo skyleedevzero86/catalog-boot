@@ -2,6 +2,7 @@ package com.sleekydz86.catalog.adapter.inbound.web.category;
 
 import com.sleekydz86.catalog.adapter.outbound.persistence.category.MetaTableCategoryMappingRow;
 import com.sleekydz86.catalog.global.application.CategoryApplicationService;
+import com.sleekydz86.catalog.global.security.AuthenticatedUserProvider;
 import com.sleekydz86.catalog.global.config.openapi.OpenApiResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

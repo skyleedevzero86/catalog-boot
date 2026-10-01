@@ -1,5 +1,6 @@
 package com.sleekydz86.catalog.domain.extract.port.out;
 
+import com.sleekydz86.catalog.domain.extract.model.ExtractDatasetManifest;
 import java.util.Optional;
 
 public interface ExtractDatasetStorePort {

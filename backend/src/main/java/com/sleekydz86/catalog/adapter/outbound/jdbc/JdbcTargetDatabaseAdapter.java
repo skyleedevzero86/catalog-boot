@@ -2,6 +2,7 @@ package com.sleekydz86.catalog.adapter.outbound.jdbc;
 
 import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
+import com.sleekydz86.catalog.domain.migration.port.out.TargetDatabasePort;
 import org.springframework.stereotype.Component;
 import java.sql.PreparedStatement;
 import java.sql.Statement;

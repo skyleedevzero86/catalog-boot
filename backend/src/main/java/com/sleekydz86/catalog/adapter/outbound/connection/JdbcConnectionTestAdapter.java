@@ -2,6 +2,9 @@ package com.sleekydz86.catalog.adapter.outbound.connection;
 
 import com.sleekydz86.catalog.domain.connection.model.ConnectionHealthStatus;
 import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
+import com.sleekydz86.catalog.adapter.outbound.jdbc.JdbcConnectionProvider;
+import com.sleekydz86.catalog.adapter.outbound.jdbc.JdbcUrlFactory;
+import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
 import com.sleekydz86.catalog.domain.connection.port.out.ConnectionTestPort;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;

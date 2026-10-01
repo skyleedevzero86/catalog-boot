@@ -1,6 +1,6 @@
 package com.sleekydz86.catalog.domain.extract.port.out;
 
-import com.sleekydz86.catalog.domain.connection.model.DatabaseEndpoint;
+import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
 import com.sleekydz86.catalog.domain.extract.model.ValidatedExtractQuery;
 import java.util.List;
 import java.util.Map;

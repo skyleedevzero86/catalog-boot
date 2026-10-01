@@ -134,7 +134,6 @@
 | Control DB   | PostgreSQL, Flyway                  |
 | Persistence  | MyBatis                             |
 | 조회 모델        | SQL View                            |
-| 명령 처리        | Stored Procedure                    |
 | ETL Adapter  | JDBC 기반 원천 조회 및 타깃 DDL/INSERT       |
 | ID 채번        | DB 함수 기반 업무 ID 생성                   |
 | Architecture | Hexagonal Architecture              |
@@ -158,24 +157,7 @@
 
 ### 등록/수정/삭제
 
-등록, 수정, 삭제 작업은 Stored Procedure를 통해 처리합니다.
-
-예시:
-
-* `sp_lnkg_profile`
-* `sp_mtdt_sync`
-* `sp_category`
-* `sp_mig_job`
-
-Procedure 호출 시 `op` 값을 기준으로 작업을 구분합니다.
-
-| op  | 의미     |
-| --- | ------ |
-| `C` | Create |
-| `U` | Update |
-| `D` | Delete |
-
-이 방식은 업무 규칙과 감사 컬럼 처리를 DB 레벨에서 일관되게 유지하기 위한 선택입니다.
+등록, 수정, 삭제는 MyBatis 기반 persistence 어댑터를 통해 처리합니다.
 
 ---
 

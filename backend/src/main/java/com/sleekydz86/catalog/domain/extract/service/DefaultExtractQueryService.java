@@ -1,6 +1,6 @@
 package com.sleekydz86.catalog.domain.extract.service;
 
-import com.sleekydz86.catalog.extract.model.ExtractQueryCommand;
+import com.sleekydz86.catalog.domain.extract.model.ExtractQueryCommand;
 import com.sleekydz86.catalog.domain.extract.model.ValidatedExtractQuery;
 
 import java.time.Duration;

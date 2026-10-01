@@ -1,6 +1,7 @@
 package com.sleekydz86.catalog.adapter.outbound.persistence.migration;
 
 import com.sleekydz86.catalog.domain.migration.model.*;
+import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

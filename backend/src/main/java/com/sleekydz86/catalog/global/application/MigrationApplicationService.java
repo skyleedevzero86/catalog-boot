@@ -4,6 +4,8 @@ import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
 import com.sleekydz86.catalog.domain.connection.port.out.ConnectionPersistencePort;
 import com.sleekydz86.catalog.domain.connection.port.out.SecretCipherPort;
 import com.sleekydz86.catalog.domain.migration.model.*;
+import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
+import com.sleekydz86.catalog.domain.migration.service.MigrationCommandService;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

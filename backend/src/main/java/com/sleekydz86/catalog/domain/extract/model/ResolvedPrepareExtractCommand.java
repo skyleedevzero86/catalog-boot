@@ -1,4 +1,6 @@
-public package com.sleekydz86.catalog.domain.extract.model;
+package com.sleekydz86.catalog.domain.extract.model;
+
+import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
 
 import java.util.List;
 
