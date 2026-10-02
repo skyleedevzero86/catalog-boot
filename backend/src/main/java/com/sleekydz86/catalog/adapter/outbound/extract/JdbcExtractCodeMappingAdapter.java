@@ -2,6 +2,7 @@ package com.sleekydz86.catalog.adapter.outbound.extract;
 
 import com.sleekydz86.catalog.adapter.outbound.jdbc.JdbcConnectionProvider;
 import com.sleekydz86.catalog.adapter.outbound.jdbc.JdbcSqlDialect;
+import com.sleekydz86.catalog.adapter.outbound.staging.StagingMybatisGateway;
 import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import com.sleekydz86.catalog.domain.extract.model.ExtractCodeMappingSpec;
 import com.sleekydz86.catalog.domain.extract.port.out.ExtractCodeMappingPort;
@@ -20,9 +21,14 @@ import java.util.Set;
 public class JdbcExtractCodeMappingAdapter implements ExtractCodeMappingPort {
 
     private final JdbcConnectionProvider jdbcConnectionProvider;
+    private final StagingMybatisGateway stagingMybatisGateway;
 
-    public JdbcExtractCodeMappingAdapter(JdbcConnectionProvider jdbcConnectionProvider) {
+    public JdbcExtractCodeMappingAdapter(
+            JdbcConnectionProvider jdbcConnectionProvider,
+            StagingMybatisGateway stagingMybatisGateway
+    ) {
         this.jdbcConnectionProvider = jdbcConnectionProvider;
+        this.stagingMybatisGateway = stagingMybatisGateway;
     }
 
     @Override
@@ -47,22 +53,10 @@ public class JdbcExtractCodeMappingAdapter implements ExtractCodeMappingPort {
     }
 
     private void createMappingTable(DatabaseEndpoint staging, String schemaName, String tableName) {
-        String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), tableName);
-        String valueType = JdbcSqlDialect.stagingValueType(staging.vendor());
-        String ddl = switch (staging.vendor()) {
-            case CLICKHOUSE -> "CREATE TABLE " + qualified + " ("
-                    + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "code") + " " + valueType + ", "
-                    + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "code_name") + " " + valueType
-                    + ") ENGINE = MergeTree() ORDER BY code";
-            default -> "CREATE TABLE " + qualified + " ("
-                    + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "code") + " " + valueType + ", "
-                    + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "code_name") + " " + valueType + ")";
-        };
-        jdbcConnectionProvider.runWithRetry(staging, connection -> {
-            try (Statement statement = connection.createStatement()) {
-                statement.execute(ddl);
-            }
-        });
+        stagingMybatisGateway.requirePostgreSQL(staging);
+        String valueType = JdbcSqlDialect.stagingValueType(DatabaseVendor.POSTGRESQL);
+        String columnsDdl = "\"code\" " + valueType + ", \"code_name\" " + valueType;
+        stagingMybatisGateway.createTable(staging, schemaName, tableName, columnsDdl);
     }
 
     private Set<String> distinctCodes(
@@ -152,35 +146,20 @@ public class JdbcExtractCodeMappingAdapter implements ExtractCodeMappingPort {
         if (rows.isEmpty()) {
             return;
         }
-        String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), mappingTable);
-        String sql = "INSERT INTO " + qualified + " ("
-                + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "code") + ", "
-                + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "code_name")
-                + ") VALUES (?, ?)";
-        jdbcConnectionProvider.runWithRetry(staging, connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                for (CodeMappingRow row : rows) {
-                    statement.setString(1, row.code());
-                    statement.setString(2, row.codeName());
-                    statement.addBatch();
-                }
-                statement.executeBatch();
-            }
-        });
+        List<List<Object>> payloadRows = new ArrayList<>(rows.size());
+        for (CodeMappingRow row : rows) {
+            List<Object> payloadRow = new ArrayList<>(2);
+            payloadRow.add(row.code());
+            payloadRow.add(row.codeName());
+            payloadRows.add(payloadRow);
+        }
+        stagingMybatisGateway.insertRows(
+                staging, schemaName, mappingTable, List.of("code", "code_name"), payloadRows
+        );
     }
 
     private void dropTableIfExists(DatabaseEndpoint staging, String schemaName, String tableName) {
-        jdbcConnectionProvider.runWithRetry(staging, connection -> {
-            String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), tableName);
-            String sql = switch (staging.vendor()) {
-                case POSTGRESQL -> "DROP TABLE IF EXISTS " + qualified + " CASCADE";
-                case MYSQL, MARIADB, CLICKHOUSE -> "DROP TABLE IF EXISTS " + qualified;
-                case ORACLE -> JdbcSqlDialect.oracleDropTablePlSql(qualified);
-            };
-            try (Statement statement = connection.createStatement()) {
-                statement.execute(sql);
-            }
-        });
+        stagingMybatisGateway.dropTable(staging, schemaName, tableName);
     }
 
     private record CodeMappingRow(String code, String codeName) {

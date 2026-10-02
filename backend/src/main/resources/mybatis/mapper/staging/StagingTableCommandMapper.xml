@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sleekydz86.catalog.adapter.outbound.staging.StagingTableCommandMapper">
+
+  <update id="executeStgTbl" statementType="CALLABLE">
+    {call sp_cdw_stg_tbl(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{schemaName, mode=IN, jdbcType=VARCHAR},
+      #{tableName, mode=IN, jdbcType=VARCHAR},
+      #{columnsDdl, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+  <update id="executeStgDedup" statementType="CALLABLE">
+    {call sp_cdw_stg_dedup(
+      #{schemaName, mode=IN, jdbcType=VARCHAR},
+      #{rawTableName, mode=IN, jdbcType=VARCHAR},
+      #{finalTableName, mode=IN, jdbcType=VARCHAR},
+      #{rawCount, mode=INOUT, jdbcType=BIGINT},
+      #{finalCount, mode=INOUT, jdbcType=BIGINT}
+    )}
+  </update>
+
+  <update id="executeStgRows" statementType="CALLABLE">
+    {call sp_cdw_stg_rows(
+      #{op, mode=IN, jdbcType=CHAR},
+      #{schemaName, mode=IN, jdbcType=VARCHAR},
+      #{tableName, mode=IN, jdbcType=VARCHAR},
+      #{payload, mode=IN, jdbcType=VARCHAR}
+    )}
+  </update>
+
+</mapper>

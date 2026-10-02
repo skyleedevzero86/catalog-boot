@@ -2,6 +2,7 @@ package com.sleekydz86.catalog.adapter.outbound.extract;
 
 import com.sleekydz86.catalog.adapter.outbound.jdbc.JdbcConnectionProvider;
 import com.sleekydz86.catalog.adapter.outbound.jdbc.JdbcSqlDialect;
+import com.sleekydz86.catalog.adapter.outbound.staging.StagingMybatisGateway;
 import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import com.sleekydz86.catalog.domain.extract.model.ValidatedExtractQuery;
 import com.sleekydz86.catalog.domain.extract.port.out.ExtractStagingPort;
@@ -14,25 +15,26 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class JdbcExtractStagingAdapter implements ExtractStagingPort {
 
     private final JdbcConnectionProvider jdbcConnectionProvider;
     private final SourceDataReaderPort sourceDataReaderPort;
+    private final StagingMybatisGateway stagingMybatisGateway;
 
     public JdbcExtractStagingAdapter(
             JdbcConnectionProvider jdbcConnectionProvider,
-            SourceDataReaderPort sourceDataReaderPort
+            SourceDataReaderPort sourceDataReaderPort,
+            StagingMybatisGateway stagingMybatisGateway
     ) {
         this.jdbcConnectionProvider = jdbcConnectionProvider;
         this.sourceDataReaderPort = sourceDataReaderPort;
+        this.stagingMybatisGateway = stagingMybatisGateway;
     }
 
     @Override
@@ -50,17 +52,7 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
 
     @Override
     public void dropTableIfExists(DatabaseEndpoint staging, String schemaName, String tableName) {
-        jdbcConnectionProvider.runWithRetry(staging, connection -> {
-            String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), tableName);
-            String sql = switch (staging.vendor()) {
-                case POSTGRESQL -> "DROP TABLE IF EXISTS " + qualified + " CASCADE";
-                case MYSQL, MARIADB, CLICKHOUSE -> "DROP TABLE IF EXISTS " + qualified;
-                case ORACLE -> JdbcSqlDialect.oracleDropTablePlSql(qualified);
-            };
-            try (Statement statement = connection.createStatement()) {
-                statement.execute(sql);
-            }
-        });
+        stagingMybatisGateway.dropTable(staging, schemaName, tableName);
     }
 
     @Override
@@ -70,29 +62,17 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
             String tableName,
             List<String> physicalColumnNames
     ) {
-        String valueType = JdbcSqlDialect.stagingValueType(staging.vendor());
+        stagingMybatisGateway.requirePostgreSQL(staging);
+        String valueType = JdbcSqlDialect.stagingValueType(DatabaseVendor.POSTGRESQL);
         StringBuilder body = new StringBuilder();
-        body.append(JdbcSqlDialect.quoteIdentifier(staging.vendor(), "__row_no"))
-                .append(" BIGINT NOT NULL,\n");
-        body.append(JdbcSqlDialect.quoteIdentifier(staging.vendor(), "__row_hash"))
-                .append(" VARCHAR(64),\n");
+        body.append("\"__row_no\" BIGINT NOT NULL,\n");
+        body.append("\"__row_hash\" VARCHAR(64),\n");
         for (String column : physicalColumnNames) {
-            body.append(JdbcSqlDialect.quoteIdentifier(staging.vendor(), column))
+            body.append(JdbcSqlDialect.quoteIdentifier(DatabaseVendor.POSTGRESQL, column))
                     .append(" ").append(valueType).append(",\n");
         }
         body.setLength(body.length() - 2);
-
-        String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), tableName);
-        String ddl = switch (staging.vendor()) {
-            case CLICKHOUSE -> "CREATE TABLE " + qualified + " (\n" + body + "\n) ENGINE = MergeTree() ORDER BY "
-                    + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "__row_no");
-            default -> "CREATE TABLE " + qualified + " (\n" + body + "\n)";
-        };
-        jdbcConnectionProvider.runWithRetry(staging, connection -> {
-            try (Statement statement = connection.createStatement()) {
-                statement.execute(ddl);
-            }
-        });
+        stagingMybatisGateway.createTable(staging, schemaName, tableName, body.toString());
     }
 
     @Override
@@ -170,17 +150,10 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
             String rawTableName,
             String finalTableName
     ) {
-        String rawQualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), rawTableName);
-        String finalQualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), finalTableName);
-        long rawCount = countRows(staging, rawQualified);
-        String sql = dedupSql(staging.vendor(), rawQualified, finalQualified);
-        jdbcConnectionProvider.runWithRetry(staging, connection -> {
-            try (Statement statement = connection.createStatement()) {
-                statement.execute(sql);
-            }
-        });
-        long finalCount = countRows(staging, finalQualified);
-        return new DedupResult(rawCount, finalCount, rawCount - finalCount);
+        StagingMybatisGateway.DedupCounts counts = stagingMybatisGateway.deduplicate(
+                staging, schemaName, rawTableName, finalTableName
+        );
+        return new DedupResult(counts.rawCount(), counts.finalCount(), counts.duplicateCount());
     }
 
     private long insertStagingBatch(
@@ -201,63 +174,27 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
                             + sourceColumnKeys.size() + ", physical=" + physicalColumnNames.size()
             );
         }
-        String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), stagingSchema, staging.schemaName(), stagingTableName);
         List<String> columns = new ArrayList<>();
         columns.add("__row_no");
         columns.add("__row_hash");
         columns.addAll(physicalColumnNames);
-        String columnList = columns.stream()
-                .map(name -> JdbcSqlDialect.quoteIdentifier(staging.vendor(), name))
-                .collect(Collectors.joining(", "));
-        String placeholders = columns.stream().map(ignored -> "?").collect(Collectors.joining(", "));
-        String sql = "INSERT INTO " + qualified + " (" + columnList + ") VALUES (" + placeholders + ")";
-
-        return jdbcConnectionProvider.executeWithRetry(staging, connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                long rowNo = rowNoStart;
-                for (Map<String, Object> row : rows) {
-                    rowNo++;
-                    List<String> values = sourceColumnKeys.stream()
-                            .map(key -> stringify(row.get(key)))
-                            .toList();
-                    String hash = JdbcSqlDialect.rowHash(values.toArray(String[]::new));
-                    statement.setLong(1, rowNo);
-                    statement.setString(2, hash);
-                    for (int i = 0; i < values.size(); i++) {
-                        statement.setString(i + 3, values.get(i));
-                    }
-                    statement.addBatch();
-                }
-                statement.executeBatch();
-                return rows.size();
-            }
-        });
-    }
-
-    private long countRows(DatabaseEndpoint staging, String qualifiedTable) {
-        return jdbcConnectionProvider.executeWithRetry(staging, connection -> {
-            try (Statement statement = connection.createStatement();
-                 ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + qualifiedTable)) {
-                resultSet.next();
-                return resultSet.getLong(1);
-            }
-        });
-    }
-
-    private String dedupSql(DatabaseVendor vendor, String rawQualified, String finalQualified) {
-        String rowNo = JdbcSqlDialect.quoteIdentifier(vendor, "__row_no");
-        String rowHash = JdbcSqlDialect.quoteIdentifier(vendor, "__row_hash");
-        return switch (vendor) {
-            case POSTGRESQL -> "CREATE TABLE " + finalQualified + " AS SELECT DISTINCT ON (" + rowHash + ") * FROM "
-                    + rawQualified + " ORDER BY " + rowHash + ", " + rowNo;
-            case MYSQL, MARIADB -> "CREATE TABLE " + finalQualified + " AS SELECT r.* FROM " + rawQualified + " r INNER JOIN ("
-                    + "SELECT " + rowHash + ", MIN(" + rowNo + ") AS mn FROM " + rawQualified + " GROUP BY " + rowHash
-                    + ") d ON r." + rowHash + " = d." + rowHash + " AND r." + rowNo + " = d.mn";
-            case ORACLE -> "CREATE TABLE " + finalQualified + " AS SELECT r.* FROM " + rawQualified + " r WHERE r." + rowNo
-                    + " IN (SELECT MIN(" + rowNo + ") FROM " + rawQualified + " GROUP BY " + rowHash + ")";
-            case CLICKHOUSE -> "CREATE TABLE " + finalQualified + " ENGINE = MergeTree() ORDER BY " + rowNo
-                    + " AS SELECT * FROM " + rawQualified + " LIMIT 1 BY " + rowHash;
-        };
+        List<List<Object>> payloadRows = new ArrayList<>(rows.size());
+        long rowNo = rowNoStart;
+        for (Map<String, Object> row : rows) {
+            rowNo++;
+            List<String> values = sourceColumnKeys.stream()
+                    .map(key -> stringify(row.get(key)))
+                    .toList();
+            String hash = JdbcSqlDialect.rowHash(values.toArray(String[]::new));
+            List<Object> payloadRow = new ArrayList<>(2 + values.size());
+            payloadRow.add(rowNo);
+            payloadRow.add(hash);
+            payloadRow.addAll(values);
+            payloadRows.add(payloadRow);
+        }
+        return stagingMybatisGateway.insertRows(
+                staging, stagingSchema, stagingTableName, columns, payloadRows
+        );
     }
 
     private String stringify(Object value) {
