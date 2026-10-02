@@ -1,3 +1,21 @@
+/*
+ * ============================================================================
+ * V2__migration_job_schema.sql
+ * ----------------------------------------------------------------------------
+ * 목적   : 원천→타깃 다중 테이블 적재 배치(job) 헤더/상세 테이블
+ * 대상   : PostgreSQL / etl_data
+ * 의존   : V1 (t_lnkg_profile, t_mtdt_set)
+ * 설계   : job 단위 집계 + 테이블 단위 실행 이력 분리. 재시도 시 FAILED 행만 재처리 가능.
+ * 롤백   : DROP TABLE t_mig_job_tbl, t_mig_job CASCADE (데이터 유실)
+ * ============================================================================
+ */
+
+-- ---------------------------------------------------------------------------
+-- [배치] t_mig_job
+-- 원천·타깃 연결을 묶는 마이그레이션 헤더.
+-- job_stts_cd 전이: PENDING → RUNNING → SUCCESS|PARTIAL_SUCCESS|FAILED(|CANCELLED:V6)
+-- batch_sz / drop_exst_yn 은 실행 시점 스냅샷으로 보관한다.
+-- ---------------------------------------------------------------------------
 create table t_mig_job (
     mig_job_id varchar(36) primary key,
     src_lnkg_id varchar(36) not null,
@@ -32,6 +50,11 @@ create table t_mig_job (
 create index idx_t_mig_job_stts on t_mig_job (job_stts_cd);
 create index idx_t_mig_job_crt_dt on t_mig_job (crt_dt desc);
 
+-- ---------------------------------------------------------------------------
+-- [배치] t_mig_job_tbl
+-- 테이블 단위 실행 이력. CASCADE 삭제로 헤더 제거 시 상세도 정리.
+-- crt_tbl_ddl_cn 은 타깃에 실제 적용한 DDL 스냅샷(감사·재현용).
+-- ---------------------------------------------------------------------------
 create table t_mig_job_tbl (
     mig_job_tbl_id varchar(36) primary key,
     mig_job_id varchar(36) not null,

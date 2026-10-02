@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: cdw-catalog-control
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cdw?currentSchema=etl_data
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  flyway:
+    enabled: true
+    create-schemas: true
+    default-schema: etl_data
+    locations: classpath:db/migration,classpath:db/migration-postgresql
+    schemas:
+      - etl_data
+
+mybatis:
+  mapper-locations: classpath:/mybatis/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+com:
+  sleekydz86:
+    catalog:
+      connection:
+        secret-master-key: 9YEf7AK6dGWza7+0ffcpVWr/O3B3VqH5rHqfImHEvWo=
+        connect-timeout: 5s
+        socket-timeout: 60s
+        jdbc-health-check-enabled: true
+      migration:
+        jdbc:
+          max-retries: 3
+          retry-delay-ms: 1000
+          parallel-table-workers: 4
+          pool-max-size: 3
+          source-fetch-size: 1000
+      extract-worker:
+        enabled: false
+        base-url: http://localhost:8090
+        callback-base-url: http://localhost:8081
+      extract:
+        store: database
+        export-root: exports
+        fetch-size: 1000
+        deduplicate-default: true
+        replace-existing-default: true
+        max-rows-per-file: 100000
+        default-staging-connection-id:
+      security:
+        jwt-secret: local-dev-jwt-secret-key-32chars-min
+        worker-token: local-dev-worker-token
+        swagger-enabled: true
+      web:
+        cors:
+          allowed-origin-patterns:
+            - http://localhost:5173
+          allowed-methods:
+            - GET
+            - POST
+            - PUT
+            - PATCH
+            - DELETE
+            - OPTIONS
+          allowed-headers:
+            - "*"
+          exposed-headers:
+            - Location
+          max-age: 1h
+
+server:
+  port: 8081
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+    doc-expansion: list
+    default-models-expand-depth: 2
+    try-it-out-enabled: true
+  show-actuator: false
+  packages-to-scan: com.sleekydz86.catalog.adapter.inbound.web
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

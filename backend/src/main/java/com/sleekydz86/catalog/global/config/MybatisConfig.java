@@ -9,14 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Properties;
 
 @Configuration
-@MapperScan(basePackages = {
-        "com.sleekydz86.adapter.outbound.persistence.connection",
-        "com.sleekydz86.adapter.outbound.persistence.migration",
-        "com.sleekydz86.adapter.outbound.persistence.codetype",
-        "com.sleekydz86.adapter.outbound.persistence.metadata",
-        "com.sleekydz86.adapter.outbound.persistence.category",
-        "com.sleekydz86.adapter.outbound.persistence.extract"
-})
+@MapperScan(basePackages = "com.sleekydz86.catalog.adapter.outbound.persistence")
 public class MybatisConfig {
 
     @Bean

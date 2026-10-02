@@ -1,3 +1,21 @@
+/*
+ * ============================================================================
+ * V1__initial_schema.sql
+ * ----------------------------------------------------------------------------
+ * 목적   : Control Plane 핵심 스키마 초기화 (연결·메타·카테고리·코드·추출)
+ * 대상   : PostgreSQL / schema etl_data (Flyway default-schema)
+ * 의존   : 없음 (최초 마이그레이션)
+ * 범위   : 물리 테이블·인덱스·COMMENT ON 메타데이터
+ * 주의   : enpswd 는 AES-GCM 암호문 저장. 평문 비밀번호를 넣지 말 것.
+ * 롤백   : 신규 환경에서는 스키마 drop 후 재적용. 운영 DB 에서는 역마이그레이션 금지.
+ * ============================================================================
+ */
+
+-- ---------------------------------------------------------------------------
+-- [연결] t_lnkg_profile
+-- JDBC 원천/타깃 접속 프로필. Soft-delete 는 lnkg_stts_cd='DELETED'.
+-- db_type_cd 는 애플리케이션 DatabaseVendor 와 동일 집합을 강제한다.
+-- ---------------------------------------------------------------------------
 create table t_lnkg_profile (
     lnkg_id varchar(36) primary key,
     lnkg_nm varchar(120) not null unique,
@@ -25,6 +43,11 @@ create table t_lnkg_profile (
         check (test_rslt_cd in ('UNKNOWN', 'VALIDATING', 'HEALTHY', 'UNHEALTHY'))
 );
 
+-- ---------------------------------------------------------------------------
+-- [메타] t_mtdt_set / t_mtdt_tbl / stats
+-- 연결 1건에 묶인 메타데이터 세트와 원천 introspection 결과 테이블 카탈로그.
+-- src_exst_yn=false 는 원천에서 사라진 테이블(동기화 시 soft-missing).
+-- ---------------------------------------------------------------------------
 create table t_mtdt_set (
     mtdt_id varchar(36) primary key,
     lnkg_id varchar(36) not null,
@@ -83,6 +106,10 @@ create table t_mtdt_tbl_stats (
         check (stats_stts_cd in ('NEVER', 'RUNNING', 'SUCCESS', 'FAILED'))
 );
 
+-- ---------------------------------------------------------------------------
+-- [카테고리] t_mtdt_tbl_ctgr / t_mtdt_tbl_ctgr_mpng
+-- 트리형 분류 + 테이블 매핑. 매핑 교체 API 는 clear 후 insert 패턴.
+-- ---------------------------------------------------------------------------
 create table t_mtdt_tbl_ctgr (
     mtdt_tbl_ctgr_id varchar(36) primary key,
     mtdt_id varchar(36) not null,
@@ -130,6 +157,10 @@ create table t_mtdt_tbl_ctgr_mpng (
         unique (mtdt_tbl_ctgr_id, mtdt_tbl_id)
 );
 
+-- ---------------------------------------------------------------------------
+-- [코드유형] t_cd_type / t_mtdt_col
+-- 코드 테이블·컬럼 매핑. 개인정보 수준(prvc_level_cd)·필터 유형은 UI/추출 정책용.
+-- ---------------------------------------------------------------------------
 create table t_cd_type (
     cd_type_id varchar(36) primary key,
     mtdt_id varchar(36) not null,
@@ -199,6 +230,10 @@ create table t_mtdt_col (
         check (col_type_cd in ('SOURCE', 'USER_DEFINED_JOIN_COPY'))
 );
 
+-- ---------------------------------------------------------------------------
+-- [사용자정의 조인] t_mtdt_user_dfn_tbl_cpst / t_mtdt_user_dfn_tbl_jn_cond
+-- SOURCE 테이블을 조합한 논리 테이블. 조인 키 참조 상태(jn_ref_stts_cd) 관리.
+-- ---------------------------------------------------------------------------
 create table t_mtdt_user_dfn_tbl_cpst (
     user_dfn_tbl_cpst_id varchar(36) primary key,
     mtdt_id varchar(36) not null,
@@ -275,6 +310,9 @@ alter table t_mtdt_col
         foreign key (src_user_dfn_tbl_cpst_id) references t_mtdt_user_dfn_tbl_cpst (user_dfn_tbl_cpst_id)
             on delete set null;
 
+-- ---------------------------------------------------------------------------
+-- 조회 성능 인덱스 (목록/필터/FK 조인 경로)
+-- ---------------------------------------------------------------------------
 create index idx_t_mtdt_set_lnkg_id
     on t_mtdt_set (lnkg_id);
 
@@ -358,6 +396,9 @@ create index idx_t_mtdt_user_dfn_tbl_jn_cond_up_col
 create index idx_t_mtdt_user_dfn_tbl_jn_cond_src_col
     on t_mtdt_user_dfn_tbl_jn_cond (src_jn_mtdt_col_id);
 
+-- ---------------------------------------------------------------------------
+-- 카탈로그 COMMENT ON (운영/문서/툴링용). 애플리케이션 로직을 대체하지 않음.
+-- ---------------------------------------------------------------------------
 comment on table t_lnkg_profile is '연결프로필';
 comment on column t_lnkg_profile.lnkg_id is '연결아이디';
 comment on column t_lnkg_profile.lnkg_nm is '연결명';
@@ -657,6 +698,10 @@ begin
     end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- [추출] 스펙·양식·요청·데이터셋·실행이력
+-- 외부 Worker/API 와 Control DB 사이의 추출 파이프라인 상태 저장.
+-- ---------------------------------------------------------------------------
 create table t_extr_spcf (
     extr_spcf_id varchar(36) primary key,
     spcf_psn_se_cd varchar(32) not null,
@@ -883,7 +928,7 @@ comment on column t_extr_spcf.spcf_psn_se_cd is '스펙소유구분코드';
 comment on column t_extr_spcf.mtdt_id is '메타데이터아이디';
 comment on column t_extr_spcf.mtdt_tbl_id is '메타데이터테이블아이디';
 comment on column t_extr_spcf.fltr_lgc_cd is '필터논리코드';
-comment on column t_extr_spcf.dpcn_prm_yn is 'Allow duplicate rows during extraction';
+comment on column t_extr_spcf.dpcn_prm_yn is '추출 시 중복 행 허용 여부';
 comment on column t_extr_spcf.creatr_id is '생성자아이디';
 comment on column t_extr_spcf.mdfr_id is '수정자아이디';
 comment on column t_extr_spcf.crt_dt is '생성일시';
@@ -905,7 +950,7 @@ comment on column t_extr_spcf_fltr.extr_spcf_fltr_id is '추출스펙필터아�
 comment on column t_extr_spcf_fltr.extr_spcf_id is '추출스펙아이디';
 comment on column t_extr_spcf_fltr.mtdt_col_id is '메타데이터컬럼아이디';
 comment on column t_extr_spcf_fltr.fltr_cnd_cd is '필터조건코드';
-comment on column t_extr_spcf_fltr.fltr_lgc_cd is 'Previous filter connector logic code';
+comment on column t_extr_spcf_fltr.fltr_lgc_cd is '이전 필터와 연결하는 논리 코드(AND/OR)';
 comment on column t_extr_spcf_fltr.vl_cn is '값내용';
 comment on column t_extr_spcf_fltr.sort_no is '정렬번호';
 comment on column t_extr_spcf_fltr.creatr_id is '생성자아이디';

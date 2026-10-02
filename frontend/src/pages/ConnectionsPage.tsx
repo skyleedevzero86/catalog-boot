@@ -6,7 +6,7 @@ import {
   listConnections,
 } from '../api/endpoints'
 import type { CreateConnectionRequest, DatabaseVendor } from '../types/api'
-import { ApiClientError } from '../api/client'
+import { toErrorMessage } from '../api/client'
 import {
   Alert,
   Badge,
@@ -16,6 +16,11 @@ import {
   Select,
   statusTone,
 } from '../components/ui'
+import {
+  LOCAL_DB_PRESETS,
+  VENDOR_DEFAULTS,
+  formForVendor,
+} from '../lib/dbPresets'
 
 const vendors: DatabaseVendor[] = [
   'POSTGRESQL',
@@ -25,26 +30,20 @@ const vendors: DatabaseVendor[] = [
   'CLICKHOUSE',
 ]
 
-const emptyForm: CreateConnectionRequest = {
-  name: '',
-  vendor: 'POSTGRESQL',
-  host: 'localhost',
-  port: 5432,
-  databaseName: '',
-  schemaName: '',
-  description: '',
-  username: '',
-  password: '',
-  enabled: true,
-}
-
 export function ConnectionsPage() {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState<CreateConnectionRequest>(() =>
+    formForVendor('POSTGRESQL'),
+  )
   const [error, setError] = useState<string | null>(null)
 
-  const { data: connections = [], isLoading } = useQuery({
+  const {
+    data: connections = [],
+    isLoading,
+    isError: listError,
+    error: listErrorValue,
+  } = useQuery({
     queryKey: ['connections'],
     queryFn: listConnections,
   })
@@ -54,17 +53,41 @@ export function ConnectionsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['connections'] })
       setShowForm(false)
-      setForm(emptyForm)
+      setForm(formForVendor('POSTGRESQL'))
       setError(null)
     },
-    onError: (e: Error) =>
-      setError(e instanceof ApiClientError ? e.message : e.message),
+    onError: (e: Error) => setError(toErrorMessage(e)),
   })
 
   const deleteMut = useMutation({
     mutationFn: deleteConnection,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['connections'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['connections'] })
+      setError(null)
+    },
+    onError: (e: Error) => setError(toErrorMessage(e)),
   })
+
+  function applyVendor(vendor: DatabaseVendor) {
+    const defaults = VENDOR_DEFAULTS[vendor]
+    setForm((prev) => ({
+      ...prev,
+      vendor,
+      port: defaults.port,
+      databaseName: defaults.databaseName,
+      schemaName: defaults.schemaName,
+      username: defaults.username,
+      password: defaults.password,
+    }))
+  }
+
+  function applyPreset(presetId: string) {
+    const preset = LOCAL_DB_PRESETS.find((item) => item.id === presetId)
+    if (!preset) return
+    setForm({ ...preset.request })
+    setShowForm(true)
+    setError(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -72,7 +95,7 @@ export function ConnectionsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">DB 연결</h1>
           <p className="text-sm text-slate-400">
-            /api/v1/conn — JDBC 프로필 CRUD
+            /api/v1/conn — PostgreSQL · MySQL · MariaDB · Oracle · ClickHouse
           </p>
         </div>
         <Button onClick={() => setShowForm((v) => !v)}>
@@ -80,7 +103,26 @@ export function ConnectionsPage() {
         </Button>
       </header>
 
-      {error && <Alert type="error">{error}</Alert>}
+      {(error || listError) && (
+        <Alert type="error">
+          {error ?? toErrorMessage(listErrorValue)}
+        </Alert>
+      )}
+
+      <Card title="로컬 Docker 프리셋">
+        <div className="flex flex-wrap gap-2">
+          {LOCAL_DB_PRESETS.map((preset) => (
+            <Button
+              key={preset.id}
+              variant="secondary"
+              className="!text-xs"
+              onClick={() => applyPreset(preset.id)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      </Card>
 
       {showForm && (
         <Card title="새 연결 등록">
@@ -100,13 +142,11 @@ export function ConnectionsPage() {
             <Select
               label="벤더 *"
               value={form.vendor}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  vendor: e.target.value as DatabaseVendor,
-                })
-              }
-              options={vendors.map((v) => ({ value: v, label: v }))}
+              onChange={(e) => applyVendor(e.target.value as DatabaseVendor)}
+              options={vendors.map((v) => ({
+                value: v,
+                label: VENDOR_DEFAULTS[v].label,
+              }))}
             />
             <Input
               label="호스트 *"

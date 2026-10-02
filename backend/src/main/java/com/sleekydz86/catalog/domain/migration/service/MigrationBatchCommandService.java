@@ -11,6 +11,8 @@ import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistenceP
 import com.sleekydz86.catalog.global.application.MigrationJobCancellationRegistry;
 import com.sleekydz86.catalog.global.config.MigrationJdbcProperties;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MigrationBatchCommandService {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationBatchCommandService.class);
 
     private final MigrationCommandService migrationCommandService;
     private final MigrationJobPersistencePort migrationJobPersistencePort;
@@ -123,7 +127,18 @@ public class MigrationBatchCommandService {
             migrationJobPersistencePort.markTableSucceeded(table.jobTableId(), result);
             totalRows.addAndGet(result.rowsLoaded());
         } catch (RuntimeException exception) {
-            migrationJobPersistencePort.markTableFailed(table.jobTableId(), exception.getMessage());
+            log.error(
+                    "테이블 적재 실패 jobId={} tableId={} tableName={}",
+                    jobId,
+                    table.jobTableId(),
+                    table.tableName(),
+                    exception
+            );
+            String message = exception.getMessage() == null ? "알 수 없는 오류" : exception.getMessage();
+            migrationJobPersistencePort.markTableFailed(
+                    table.jobTableId(),
+                    message.length() > 1000 ? message.substring(0, 1000) : message
+            );
         }
     }
 

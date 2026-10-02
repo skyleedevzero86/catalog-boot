@@ -6,7 +6,7 @@ import {
   listMetaTables,
   syncMeta,
 } from '../api/endpoints'
-import { ApiClientError } from '../api/client'
+import { toErrorMessage } from '../api/client'
 import { Alert, Button, Card, Input, Badge } from '../components/ui'
 
 export function MetaPage() {
@@ -24,27 +24,45 @@ export function MetaPage() {
       )
       setError(null)
     },
-    onError: (e: Error) =>
-      setError(e instanceof ApiClientError ? e.message : e.message),
+    onError: (e: Error) => setError(toErrorMessage(e)),
   })
 
-  const { data: tables = [], isFetching: tablesLoading } = useQuery({
+  const {
+    data: tables = [],
+    isFetching: tablesLoading,
+    isError: tablesError,
+    error: tablesErrorValue,
+  } = useQuery({
     queryKey: ['meta-tables', activeMtdt],
     queryFn: () => listMetaTables(activeMtdt),
     enabled: !!activeMtdt,
   })
 
-  const { data: codeTypes = [] } = useQuery({
+  const {
+    data: codeTypes = [],
+    isError: codeTypesError,
+    error: codeTypesErrorValue,
+  } = useQuery({
     queryKey: ['code-types', activeMtdt],
     queryFn: () => listCodeTypes(activeMtdt),
     enabled: !!activeMtdt,
   })
 
-  const { data: candidates = [] } = useQuery({
+  const {
+    data: candidates = [],
+    isError: candidatesError,
+    error: candidatesErrorValue,
+  } = useQuery({
     queryKey: ['code-candidates', activeMtdt],
     queryFn: () => listCodeTypeCandidates(activeMtdt),
     enabled: !!activeMtdt,
   })
+
+  const queryError =
+    (tablesError && toErrorMessage(tablesErrorValue)) ||
+    (codeTypesError && toErrorMessage(codeTypesErrorValue)) ||
+    (candidatesError && toErrorMessage(candidatesErrorValue)) ||
+    null
 
   return (
     <div className="space-y-6">
@@ -55,7 +73,9 @@ export function MetaPage() {
         </p>
       </header>
 
-      {error && <Alert type="error">{error}</Alert>}
+      {(error || queryError) && (
+        <Alert type="error">{error ?? queryError}</Alert>
+      )}
       {syncResult && <Alert type="success">{syncResult}</Alert>}
 
       <Card title="메타 동기화">

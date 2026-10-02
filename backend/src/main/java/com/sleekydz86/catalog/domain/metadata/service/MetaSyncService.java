@@ -12,7 +12,11 @@ import com.sleekydz86.catalog.domain.metadata.port.out.MetaPersistencePort;
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
 import com.sleekydz86.catalog.domain.migration.model.SourceTableDescriptor;
 import com.sleekydz86.catalog.domain.migration.port.out.SourceMetadataPort;
+import com.sleekydz86.catalog.global.exception.ErrorCode;
+import com.sleekydz86.catalog.global.exception.InfrastructureException;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -24,6 +28,7 @@ import java.util.Set;
 
 public class MetaSyncService {
 
+    private static final Logger log = LoggerFactory.getLogger(MetaSyncService.class);
     private static final int DISPLAY_NAME_MAX_LENGTH = 255;
 
     private final MetaPersistencePort metaPersistencePort;
@@ -77,15 +82,24 @@ public class MetaSyncService {
                     counts.missingCount(),
                     counts.restoredCount()
             );
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             String message = truncate(exception.getMessage(), 1000);
-            metaPersistencePort.saveMetaSet(metaSet.withSyncStatus(
-                    MetaSyncStatus.FAILED,
-                    Instant.now(),
-                    message,
-                    command.actorId()
-            ));
-            throw new IllegalStateException("메타데이터 동기화에 실패했습니다: " + message, exception);
+            log.error("메타데이터 동기화 실패 mtdtId={} message={}", metaSet.id(), message, exception);
+            try {
+                metaPersistencePort.saveMetaSet(metaSet.withSyncStatus(
+                        MetaSyncStatus.FAILED,
+                        Instant.now(),
+                        message,
+                        command.actorId()
+                ));
+            } catch (RuntimeException persistException) {
+                log.error("메타데이터 동기화 실패 상태 저장 중 오류 mtdtId={}", metaSet.id(), persistException);
+            }
+            throw InfrastructureException.of(
+                    ErrorCode.METADATA_SYNC_FAILED,
+                    "메타데이터 동기화에 실패했습니다: " + message,
+                    exception
+            );
         }
     }
 

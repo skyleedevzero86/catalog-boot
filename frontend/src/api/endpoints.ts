@@ -14,7 +14,6 @@ import type {
   TargetDdlPreview,
 } from '../types/api'
 
-// —— Connection ——
 export const listConnections = () =>
   apiFetch<ConnectionSummary[]>('/api/v1/conn/list')
 
@@ -39,7 +38,6 @@ export const updateConnection = (
 export const deleteConnection = (id: string) =>
   apiFetch<ConnectionDetail>(`/api/v1/conn/delete/${id}`, { method: 'POST' })
 
-// —— Meta ——
 export const syncMeta = (mtdtId: string) =>
   apiFetch<MetaSyncResponse>('/api/v1/meta/sync', {
     method: 'POST',
@@ -55,7 +53,6 @@ export const listCodeTypes = (mtdtId: string) =>
 export const listCodeTypeCandidates = (mtdtId: string) =>
   apiFetch<CodeTypeSummary[]>(`/api/v1/meta/code-types/${mtdtId}/candidates`)
 
-// —— Category ——
 export const listCategories = (mtdtId: string) =>
   apiFetch<Category[]>(`/api/v1/category/list/${mtdtId}`)
 
@@ -100,7 +97,6 @@ export const mapCategoryTables = (categoryId: string, tableIds: string[]) =>
     body: JSON.stringify({ tableIds }),
   })
 
-// —— Migration ——
 export const previewDdl = (body: {
   sourceConnectionId: string
   targetConnectionId: string

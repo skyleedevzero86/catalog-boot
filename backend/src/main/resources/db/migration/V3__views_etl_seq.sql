@@ -1,3 +1,19 @@
+/*
+ * ============================================================================
+ * V3__views_etl_seq.sql
+ * ----------------------------------------------------------------------------
+ * 목적   : 업무 ID 채번(t_etl_seq) 및 조회용 VIEW 정의
+ * 대상   : PostgreSQL / etl_data
+ * 의존   : V1, V2
+ * 설계   : API 조회는 VIEW 경유. DELETED 연결·미사용 테이블은 목록에서 제외.
+ * 롤백   : DROP VIEW ... ; DROP TABLE t_etl_seq;
+ * ============================================================================
+ */
+
+-- ---------------------------------------------------------------------------
+-- t_etl_seq : 접두어(seq_key)+일자(seq_dt) 단위 채번 상태
+-- fn_next_etl_id / H2 테스트 경로가 동일 키 계약을 공유한다.
+-- ---------------------------------------------------------------------------
 create table t_etl_seq (
     seq_key varchar(32) not null,
     seq_dt  date not null,
@@ -5,6 +21,10 @@ create table t_etl_seq (
     primary key (seq_key, seq_dt)
 );
 
+-- ---------------------------------------------------------------------------
+-- 조회 VIEW : API/MyBatis 는 물리 테이블 직접 노출 대신 VIEW 를 사용한다.
+-- v_lnkg_profile 은 DELETED soft-delete 행을 목록에서 제외한다.
+-- ---------------------------------------------------------------------------
 create or replace view v_mtdt_tbl_list as
 select
     t.mtdt_tbl_id, t.mtdt_id, t.orgnl_tbl_nm, t.tbl_nm, t.tbl_expln, t.orgnl_tbl_expln,

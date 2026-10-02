@@ -9,11 +9,15 @@ import com.sleekydz86.catalog.domain.migration.model.MigrationJobStatus;
 import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 import com.sleekydz86.catalog.domain.migration.service.MigrationBatchCommandService;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MigrationJobRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationJobRunner.class);
 
     private final MigrationBatchCommandService migrationBatchCommandService;
     private final MigrationJobPersistencePort migrationJobPersistencePort;
@@ -52,17 +56,29 @@ public class MigrationJobRunner {
             DatabaseEndpoint target = toEndpoint(requireConnection(job.targetConnectionId()));
             migrationBatchCommandService.executeJob(jobId, source, target, failedOnly);
         } catch (RuntimeException exception) {
-            migrationJobPersistencePort.findJob(jobId).ifPresent(job -> {
-                if (job.status() == MigrationJobStatus.PENDING || job.status() == MigrationJobStatus.RUNNING) {
-                    migrationJobPersistencePort.markJobFinished(
-                            jobId,
-                            MigrationJobStatus.FAILED,
-                            0L,
-                            exception.getMessage()
-                    );
-                }
-            });
+            log.error("비동기 마이그레이션 작업 실패 jobId={} failedOnly={}", jobId, failedOnly, exception);
+            try {
+                migrationJobPersistencePort.findJob(jobId).ifPresent(job -> {
+                    if (job.status() == MigrationJobStatus.PENDING || job.status() == MigrationJobStatus.RUNNING) {
+                        migrationJobPersistencePort.markJobFinished(
+                                jobId,
+                                MigrationJobStatus.FAILED,
+                                0L,
+                                truncate(exception.getMessage(), 1000)
+                        );
+                    }
+                });
+            } catch (RuntimeException markFailedException) {
+                log.error("마이그레이션 실패 상태 저장 중 오류 jobId={}", jobId, markFailedException);
+            }
         }
+    }
+
+    private static String truncate(String value, int max) {
+        if (value == null) {
+            return "알 수 없는 오류";
+        }
+        return value.length() <= max ? value : value.substring(0, max);
     }
 
     private ConnectionProfile requireConnection(String connectionId) {

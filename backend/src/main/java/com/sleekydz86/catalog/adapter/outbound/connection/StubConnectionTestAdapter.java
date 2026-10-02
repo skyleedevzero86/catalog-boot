@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Primary
 @ConditionalOnProperty(
-        prefix = "cdw.catalog.connection",
+        prefix = "com.sleekydz86.catalog.connection",
         name = "jdbc-health-check-enabled",
         havingValue = "false"
 )

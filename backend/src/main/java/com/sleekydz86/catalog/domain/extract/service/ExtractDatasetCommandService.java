@@ -18,7 +18,11 @@ import com.sleekydz86.catalog.domain.extract.port.out.ExtractDatasetStorePort;
 import com.sleekydz86.catalog.domain.extract.port.out.ExtractExportPort;
 import com.sleekydz86.catalog.domain.extract.port.out.ExtractStagingPort;
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
+import com.sleekydz86.catalog.global.exception.ErrorCode;
+import com.sleekydz86.catalog.global.exception.InfrastructureException;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,6 +30,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class ExtractDatasetCommandService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExtractDatasetCommandService.class);
 
     private final ExtractDatasetStorePort extractDatasetStorePort;
     private final ConnectionEndpointPort connectionEndpointPort;
@@ -179,8 +185,20 @@ public class ExtractDatasetCommandService {
             extractDatasetStorePort.save(exported);
             return new ExportExtractResult(command.datasetId(), ExtractDatasetStatus.COMPLETED, exported.rowCount(), filePaths);
         } catch (RuntimeException exception) {
-            extractDatasetStorePort.save(manifest.withStatus(ExtractDatasetStatus.FAILED, exception.getMessage()));
-            throw exception;
+            log.error("Extract export 실패 datasetId={}", command.datasetId(), exception);
+            try {
+                extractDatasetStorePort.save(manifest.withStatus(ExtractDatasetStatus.FAILED, exception.getMessage()));
+            } catch (RuntimeException persistException) {
+                log.error("Extract 실패 상태 저장 중 오류 datasetId={}", command.datasetId(), persistException);
+            }
+            if (exception instanceof InfrastructureException infrastructureException) {
+                throw infrastructureException;
+            }
+            throw InfrastructureException.of(
+                    ErrorCode.EXTRACT_FAILED,
+                    "데이터셋 export에 실패했습니다: " + command.datasetId(),
+                    exception
+            );
         }
     }
 

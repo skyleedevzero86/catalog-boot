@@ -6,13 +6,19 @@ import com.sleekydz86.catalog.domain.connection.port.out.SecretCipherPort;
 import com.sleekydz86.catalog.domain.migration.model.*;
 import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 import com.sleekydz86.catalog.domain.migration.service.MigrationCommandService;
+import com.sleekydz86.catalog.global.exception.ErrorCode;
+import com.sleekydz86.catalog.global.exception.InfrastructureException;
 import com.sleekydz86.catalog.global.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
 public class MigrationApplicationService {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationApplicationService.class);
 
     private final MigrationCommandService migrationCommandService;
     private final ConnectionPersistencePort connectionPersistencePort;
@@ -92,9 +98,24 @@ public class MigrationApplicationService {
             migrationJobPersistencePort.markJobFinished(job.jobId(), MigrationJobStatus.SUCCESS, result.rowsLoaded(), null);
             return result;
         } catch (RuntimeException exception) {
-            migrationJobPersistencePort.markTableFailed(jobTableId, exception.getMessage());
-            migrationJobPersistencePort.markJobFinished(job.jobId(), MigrationJobStatus.FAILED, 0L, exception.getMessage());
-            throw exception;
+            log.error(
+                    "단일 테이블 적재 실패 jobId={} tableName={} cause={}",
+                    job.jobId(),
+                    tableName,
+                    exception.getMessage(),
+                    exception
+            );
+            String message = exception.getMessage() == null ? "알 수 없는 오류" : exception.getMessage();
+            migrationJobPersistencePort.markTableFailed(jobTableId, message);
+            migrationJobPersistencePort.markJobFinished(job.jobId(), MigrationJobStatus.FAILED, 0L, message);
+            if (exception instanceof InfrastructureException infrastructureException) {
+                throw infrastructureException;
+            }
+            throw InfrastructureException.of(
+                    ErrorCode.MIGRATION_FAILED,
+                    "테이블 적재에 실패했습니다: " + tableName,
+                    exception
+            );
         } finally {
             MigrationJobCancellationRegistry.clear(job.jobId());
         }

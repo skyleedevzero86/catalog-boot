@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listConnections, listMigrationJobs } from '../api/endpoints'
-import { Card, Badge, statusTone } from '../components/ui'
+import { toErrorMessage } from '../api/client'
+import { Card, Badge, statusTone, Alert } from '../components/ui'
 
 const links = [
   {
@@ -32,16 +33,28 @@ const links = [
 ]
 
 export function DashboardPage() {
-  const { data: connections = [] } = useQuery({
+  const {
+    data: connections = [],
+    isError: connectionsError,
+    error: connectionsErrorValue,
+  } = useQuery({
     queryKey: ['connections'],
     queryFn: listConnections,
   })
-  const { data: jobs = [] } = useQuery({
+  const {
+    data: jobs = [],
+    isError: jobsError,
+    error: jobsErrorValue,
+  } = useQuery({
     queryKey: ['migration-jobs'],
     queryFn: () => listMigrationJobs(10),
   })
 
   const running = jobs.filter((j) => j.status === 'RUNNING').length
+  const loadError =
+    (connectionsError && toErrorMessage(connectionsErrorValue)) ||
+    (jobsError && toErrorMessage(jobsErrorValue)) ||
+    null
 
   return (
     <div className="space-y-8">
@@ -52,6 +65,7 @@ export function DashboardPage() {
         </p>
       </header>
 
+      {loadError && <Alert type="error">{loadError}</Alert>}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <p className="text-sm text-slate-400">등록 연결</p>

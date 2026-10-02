@@ -3,11 +3,16 @@ package com.sleekydz86.catalog.adapter.outbound.extract;
 import com.sleekydz86.catalog.domain.extract.model.ExtractJobStatus;
 import com.sleekydz86.catalog.domain.extract.port.out.ExtractWorkerPort;
 import com.sleekydz86.catalog.global.config.ExtractWorkerProperties;
+import com.sleekydz86.catalog.global.exception.ErrorCode;
+import com.sleekydz86.catalog.global.exception.InfrastructureException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
@@ -16,6 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class HttpExtractWorkerAdapter implements ExtractWorkerPort {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpExtractWorkerAdapter.class);
 
     private final ExtractWorkerProperties properties;
     private final RestTemplate restTemplate;
@@ -40,16 +47,26 @@ public class HttpExtractWorkerAdapter implements ExtractWorkerPort {
                 "callbackUrl", callback,
                 "actorId", request.actorId() == null ? "system" : request.actorId()
         );
-        ResponseEntity<Map> response = restTemplate.exchange(
-                properties.baseUrl() + "/api/v1/extract/jobs",
-                HttpMethod.POST,
-                new HttpEntity<>(body),
-                Map.class
-        );
-        Object jobId = response.getBody() == null ? null : response.getBody().get("jobId");
-        String extractRequestId = jobId == null ? UUID.randomUUID().toString() : jobId.toString();
-        localStatuses.put(extractRequestId, ExtractJobStatus.SUBMITTED);
-        return extractRequestId;
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    properties.baseUrl() + "/api/v1/extract/jobs",
+                    HttpMethod.POST,
+                    new HttpEntity<>(body),
+                    Map.class
+            );
+            Object jobId = response.getBody() == null ? null : response.getBody().get("jobId");
+            String extractRequestId = jobId == null ? UUID.randomUUID().toString() : jobId.toString();
+            localStatuses.put(extractRequestId, ExtractJobStatus.SUBMITTED);
+            return extractRequestId;
+        } catch (RestClientException exception) {
+            log.error("Extract Worker 작업 제출 실패 mtdtId={} tableName={}",
+                    request.mtdtId(), request.tableName(), exception);
+            throw InfrastructureException.of(
+                    ErrorCode.EXTERNAL_SERVICE_FAILED,
+                    "Extract Worker 작업 제출에 실패했습니다.",
+                    exception
+            );
+        }
     }
 
     @Override
@@ -58,13 +75,22 @@ public class HttpExtractWorkerAdapter implements ExtractWorkerPort {
             localStatuses.put(extractRequestId, ExtractJobStatus.CANCELLED);
             return;
         }
-        restTemplate.exchange(
-                properties.baseUrl() + "/api/v1/extract/jobs/" + extractRequestId + "/cancel",
-                HttpMethod.POST,
-                HttpEntity.EMPTY,
-                Void.class
-        );
-        localStatuses.put(extractRequestId, ExtractJobStatus.CANCELLED);
+        try {
+            restTemplate.exchange(
+                    properties.baseUrl() + "/api/v1/extract/jobs/" + extractRequestId + "/cancel",
+                    HttpMethod.POST,
+                    HttpEntity.EMPTY,
+                    Void.class
+            );
+            localStatuses.put(extractRequestId, ExtractJobStatus.CANCELLED);
+        } catch (RestClientException exception) {
+            log.error("Extract Worker 작업 취소 실패 extractRequestId={}", extractRequestId, exception);
+            throw InfrastructureException.of(
+                    ErrorCode.EXTERNAL_SERVICE_FAILED,
+                    "Extract Worker 작업 취소에 실패했습니다.",
+                    exception
+            );
+        }
     }
 
     @Override
@@ -86,8 +112,17 @@ public class HttpExtractWorkerAdapter implements ExtractWorkerPort {
                 return ExtractJobStatus.SUBMITTED;
             }
             return ExtractJobStatus.valueOf(status.toString());
-        } catch (RuntimeException exception) {
+        } catch (RestClientException exception) {
+            log.warn(
+                    "Extract Worker 상태 조회 실패 extractRequestId={} cached={} cause={}",
+                    extractRequestId,
+                    cached,
+                    exception.getMessage()
+            );
             return cached == null ? ExtractJobStatus.FAILED : cached;
+        } catch (IllegalArgumentException exception) {
+            log.error("Extract Worker 상태 값 파싱 실패 extractRequestId={}", extractRequestId, exception);
+            return ExtractJobStatus.FAILED;
         }
     }
 }

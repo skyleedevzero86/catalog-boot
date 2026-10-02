@@ -8,4 +8,12 @@ public record ExtractWorkerProperties(
         String baseUrl,
         String callbackBaseUrl
 ) {
+    public ExtractWorkerProperties {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            baseUrl = "http://localhost:8090";
+        }
+        if (callbackBaseUrl == null || callbackBaseUrl.isBlank()) {
+            callbackBaseUrl = "http://localhost:8081";
+        }
+    }
 }

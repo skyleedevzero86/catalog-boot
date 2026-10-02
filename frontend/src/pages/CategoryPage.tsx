@@ -7,7 +7,7 @@ import {
   listMetaTables,
   mapCategoryTables,
 } from '../api/endpoints'
-import { ApiClientError } from '../api/client'
+import { toErrorMessage } from '../api/client'
 import { Alert, Button, Card, Input } from '../components/ui'
 
 export function CategoryPage() {
@@ -20,13 +20,21 @@ export function CategoryPage() {
   const [error, setError] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
 
-  const { data: categories = [] } = useQuery({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    error: categoriesErrorValue,
+  } = useQuery({
     queryKey: ['categories', activeMtdt],
     queryFn: () => listCategories(activeMtdt),
     enabled: !!activeMtdt,
   })
 
-  const { data: tables = [] } = useQuery({
+  const {
+    data: tables = [],
+    isError: tablesError,
+    error: tablesErrorValue,
+  } = useQuery({
     queryKey: ['meta-tables', activeMtdt],
     queryFn: () => listMetaTables(activeMtdt),
     enabled: !!activeMtdt,
@@ -46,14 +54,17 @@ export function CategoryPage() {
       setMsg('카테고리가 생성되었습니다.')
       setError(null)
     },
-    onError: (e: Error) =>
-      setError(e instanceof ApiClientError ? e.message : e.message),
+    onError: (e: Error) => setError(toErrorMessage(e)),
   })
 
   const deleteMut = useMutation({
     mutationFn: deleteCategory,
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ['categories', activeMtdt] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories', activeMtdt] })
+      setMsg('카테고리가 삭제되었습니다.')
+      setError(null)
+    },
+    onError: (e: Error) => setError(toErrorMessage(e)),
   })
 
   const mapMut = useMutation({
@@ -62,8 +73,7 @@ export function CategoryPage() {
       setMsg(`매핑 ${rows.length}건으로 교체되었습니다.`)
       setError(null)
     },
-    onError: (e: Error) =>
-      setError(e instanceof ApiClientError ? e.message : e.message),
+    onError: (e: Error) => setError(toErrorMessage(e)),
   })
 
   const toggleTable = (id: string) => {
@@ -81,7 +91,14 @@ export function CategoryPage() {
         </p>
       </header>
 
-      {error && <Alert type="error">{error}</Alert>}
+      {(error || categoriesError || tablesError) && (
+        <Alert type="error">
+          {error ||
+            (categoriesError
+              ? toErrorMessage(categoriesErrorValue)
+              : toErrorMessage(tablesErrorValue))}
+        </Alert>
+      )}
       {msg && <Alert type="success">{msg}</Alert>}
 
       <Card title="메타데이터세트 선택">

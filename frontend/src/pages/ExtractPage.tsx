@@ -23,6 +23,7 @@ export function ExtractPage() {
     datasetId,
     setDatasetId,
     manifest,
+    manifestError,
     refetchManifest,
     feedback,
     prepareMutation,
@@ -39,7 +40,9 @@ export function ExtractPage() {
         </p>
       </header>
 
-      {feedback.error && <Alert type="error">{feedback.error}</Alert>}
+      {(feedback.error || manifestError) && (
+        <Alert type="error">{feedback.error ?? manifestError}</Alert>
+      )}
       {feedback.message && <Alert type="success">{feedback.message}</Alert>}
 
       <Card title="1. Prepare — 스테이징 적재">

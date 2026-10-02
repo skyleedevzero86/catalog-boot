@@ -8,7 +8,7 @@ import {
   type ExportDatasetRequest,
   type PrepareExtractRequest,
 } from '../api/extract'
-import { ApiClientError } from '../api/client'
+import { toErrorMessage } from '../api/client'
 
 export function useExtractWorkflow() {
   const queryClient = useQueryClient()
@@ -26,7 +26,7 @@ export function useExtractWorkflow() {
 
   const handleError = useCallback((error: Error) => {
     setFeedback({
-      error: error instanceof ApiClientError ? error.message : error.message,
+      error: toErrorMessage(error),
       message: null,
     })
   }, [])
@@ -69,6 +69,9 @@ export function useExtractWorkflow() {
     datasetId,
     setDatasetId,
     manifest: manifestQuery.data,
+    manifestError: manifestQuery.isError
+      ? toErrorMessage(manifestQuery.error)
+      : null,
     refetchManifest: manifestQuery.refetch,
     feedback,
     prepareMutation,

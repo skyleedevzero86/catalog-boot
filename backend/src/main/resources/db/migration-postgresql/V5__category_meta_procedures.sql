@@ -1,3 +1,19 @@
+/*
+ * ============================================================================
+ * V5__category_meta_procedures.sql (PostgreSQL 전용)
+ * ----------------------------------------------------------------------------
+ * 목적   : 메타세트·메타테이블·카테고리·코드유형 CUD 프로시저
+ * 대상   : PostgreSQL plpgsql / etl_data
+ * 의존   : V1, V4 (fn_next_etl_id)
+ * 계약   : p_op = 'C'|'U'|'D'. 미지원 op 는 EXCEPTION.
+ * 주의   : 메타세트 DELETE 는 FK CASCADE 로 하위 메타테이블까지 영향 가능.
+ * ============================================================================
+ */
+
+-- ---------------------------------------------------------------------------
+-- sp_mtdt_set : 메타데이터 세트 C/U/D
+-- D 는 하위 FK CASCADE 영향 가능 — 호출 전 의존 데이터 확인.
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_mtdt_set(
     p_op char(1), inout p_mtdt_id varchar,
     p_lnkg_id varchar default null, p_mtdt_nm varchar default null, p_mtdt_expln varchar default null,
@@ -37,6 +53,10 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- sp_mtdt_tbl : 메타 테이블 C/U/D. ID 접두어 mtbl-
+-- D 는 물리 삭제가 아니라 use_yn=false (목록 VIEW 에서 제외).
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_mtdt_tbl(
     p_op char(1), inout p_mtdt_tbl_id varchar,
     p_mtdt_id varchar default null, p_orgnl_tbl_nm varchar default null, p_tbl_nm varchar default null,
@@ -85,6 +105,10 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- sp_mtdt_tbl_ctgr : 카테고리 트리 노드 C/U/D. ID 접두어 ctgr-
+-- up_mtdt_tbl_ctgr_id 로 계층. D 는 물리 삭제(하위/매핑 FK 정책 확인 필요).
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_mtdt_tbl_ctgr(
     p_op char(1), inout p_mtdt_tbl_ctgr_id varchar,
     p_mtdt_id varchar default null, p_up_mtdt_tbl_ctgr_id varchar default null,
@@ -125,6 +149,10 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- sp_mtdt_tbl_ctgr_mpng : 카테고리↔테이블 매핑 C/U/D. ID 접두어 mpng-
+-- 교체 API 는 sp_mtdt_tbl_ctgr_mpng_clear 후 C 다건 호출 패턴.
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_mtdt_tbl_ctgr_mpng(
     p_op char(1), inout p_mtdt_tbl_ctgr_mpng_id varchar,
     p_mtdt_id varchar default null, p_mtdt_tbl_ctgr_id varchar default null, p_mtdt_tbl_id varchar default null,

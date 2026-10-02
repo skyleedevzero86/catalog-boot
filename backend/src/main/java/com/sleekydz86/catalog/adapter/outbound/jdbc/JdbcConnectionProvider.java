@@ -1,5 +1,6 @@
 package com.sleekydz86.catalog.adapter.outbound.jdbc;
 
+import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
 import com.sleekydz86.catalog.global.config.ConnectionModuleProperties;
 import com.sleekydz86.catalog.global.config.MigrationJdbcProperties;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Component;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 @Component
 public class JdbcConnectionProvider {
@@ -76,15 +76,28 @@ public class JdbcConnectionProvider {
     private HikariDataSource createPool(DatabaseEndpoint endpoint) {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(JdbcUrlFactory.jdbcUrl(endpoint));
+        config.setDriverClassName(driverClassName(endpoint.vendor()));
         config.setUsername(endpoint.username());
         config.setPassword(endpoint.password());
         config.setMaximumPoolSize(migrationJdbcProperties.poolMaxSize());
         config.setMinimumIdle(1);
         config.setPoolName("cdw-mig-" + endpoint.vendor().name().toLowerCase());
-        long connectTimeoutMs = connectionProperties.connectTimeout().toMillis();
+        long connectTimeoutMs = connectionProperties.connectTimeout() == null
+                ? 5_000L
+                : connectionProperties.connectTimeout().toMillis();
         config.setConnectionTimeout(connectTimeoutMs);
         config.setValidationTimeout(Math.min(connectTimeoutMs, 5000L));
         return new HikariDataSource(config);
+    }
+
+    private static String driverClassName(DatabaseVendor vendor) {
+        return switch (vendor) {
+            case POSTGRESQL -> "org.postgresql.Driver";
+            case MYSQL -> "com.mysql.cj.jdbc.Driver";
+            case MARIADB -> "org.mariadb.jdbc.Driver";
+            case ORACLE -> "oracle.jdbc.OracleDriver";
+            case CLICKHOUSE -> "com.clickhouse.jdbc.ClickHouseDriver";
+        };
     }
 
     private void sleep(long delayMs) {

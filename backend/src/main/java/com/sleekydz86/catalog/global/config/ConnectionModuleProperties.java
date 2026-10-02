@@ -9,4 +9,12 @@ public record ConnectionModuleProperties(
         Duration connectTimeout,
         Duration socketTimeout
 ) {
+    public ConnectionModuleProperties {
+        if (connectTimeout == null) {
+            connectTimeout = Duration.ofSeconds(5);
+        }
+        if (socketTimeout == null) {
+            socketTimeout = Duration.ofSeconds(60);
+        }
+    }
 }

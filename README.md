@@ -309,19 +309,45 @@ Base path: `/api/v1/extract`
 
 ## 실행 방법
 
+### 1) 로컬 멀티 DB (Docker)
+
+Control DB(PostgreSQL)와 원천/타깃 샘플 DB(MySQL, MariaDB, ClickHouse)를 함께 띄웁니다.
+
 ```powershell
-cd DataBridge_Main
-.\gradlew.bat test
+docker compose up -d
+```
+
+| 서비스 | 포트 | DB / 계정 | 용도 |
+| ------ | ---- | --------- | ---- |
+| postgres | `5432` | `cdw` / `postgres:postgres` | Control DB + `demo` 샘플 스키마 |
+| mysql | `3306` | `source_db` / `catalog:catalog` | MySQL 원천/타깃 샘플 |
+| mariadb | `3307` | `source_db` / `catalog:catalog` | MariaDB 원천/타깃 샘플 |
+| clickhouse | `8123` | `source_db` / `default`(비번 없음) | ClickHouse 원천/타깃 샘플 |
+
+Oracle은 라이선스/이미지 무게 때문에 compose에 포함하지 않습니다. UI에서 벤더만 선택해 외부 Oracle에 연결하면 됩니다.
+
+### 2) 백엔드
+
+```powershell
+cd backend
 .\gradlew.bat bootRun
 ```
+
+### 3) 프론트엔드
+
+```powershell
+cd frontend
+pnpm install
+pnpm dev
+```
+
+Connections 화면의 **로컬 Docker 프리셋** 버튼으로 JDBC 연결을 바로 등록할 수 있습니다.
 
 기본 실행 조건:
 
 * PostgreSQL Control DB 필요
-* 기본 DB: `localhost:5432/databridge`
-* 기본 schema: `databridge`
 * API 인증은 PoC 기준 비활성화
-* Swagger UI에서 API 직접 호출 가능
+* Swagger UI: `http://localhost:8081/swagger-ui.html`
 
 ---
 

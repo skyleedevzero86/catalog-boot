@@ -6,8 +6,17 @@ import com.sleekydz86.catalog.domain.connection.port.out.*;
 import com.sleekydz86.catalog.domain.connection.service.ConnectionCommandService;
 import com.sleekydz86.catalog.domain.metadata.port.out.MetaPersistencePort;
 import com.sleekydz86.catalog.domain.metadata.service.MetaSyncService;
+import com.sleekydz86.catalog.domain.extract.port.out.ExtractCodeMappingPort;
+import com.sleekydz86.catalog.domain.extract.port.out.ExtractDatasetStorePort;
+import com.sleekydz86.catalog.domain.extract.port.out.ExtractExportPort;
+import com.sleekydz86.catalog.domain.extract.port.out.ExtractStagingPort;
 import com.sleekydz86.catalog.domain.extract.port.out.ExtractWorkerPort;
+import com.sleekydz86.catalog.domain.extract.model.ExtractPipelinePolicy;
+import com.sleekydz86.catalog.domain.extract.service.DefaultExtractQueryService;
+import com.sleekydz86.catalog.domain.extract.service.ExtractDatasetCommandService;
+import com.sleekydz86.catalog.domain.extract.service.ExtractQueryService;
 import com.sleekydz86.catalog.domain.extract.service.ExtractRequestCommandService;
+import com.sleekydz86.catalog.domain.connection.port.out.ConnectionEndpointPort;
 import com.sleekydz86.catalog.domain.migration.port.out.DdlTypeMapperPort;
 import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 import com.sleekydz86.catalog.domain.migration.port.out.SourceDataReaderPort;
@@ -20,6 +29,8 @@ import com.sleekydz86.catalog.domain.migration.service.MigrationCommandService;
 import com.sleekydz86.catalog.domain.migration.service.TargetDdlGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 @Configuration
 public class DomainServiceConfig {
@@ -90,5 +101,45 @@ public class DomainServiceConfig {
             ExtractWorkerPort extractWorkerPort
     ) {
         return new ExtractRequestCommandService(extractWorkerPort);
+    }
+
+    @Bean
+    ExtractPipelinePolicy extractPipelinePolicy(ExtractModuleProperties extractModuleProperties) {
+        return new ExtractPipelinePolicy(
+                extractModuleProperties.fetchSize(),
+                extractModuleProperties.deduplicateDefault(),
+                extractModuleProperties.replaceExistingDefault(),
+                extractModuleProperties.maxRowsPerFile(),
+                extractModuleProperties.defaultStagingConnectionId(),
+                true,
+                100_000,
+                Duration.ofMinutes(5)
+        );
+    }
+
+    @Bean
+    ExtractQueryService extractQueryService() {
+        return new DefaultExtractQueryService();
+    }
+
+    @Bean
+    ExtractDatasetCommandService extractDatasetCommandService(
+            ExtractDatasetStorePort extractDatasetStorePort,
+            ConnectionEndpointPort connectionEndpointPort,
+            ExtractStagingPort extractStagingPort,
+            ExtractCodeMappingPort extractCodeMappingPort,
+            ExtractExportPort extractExportPort,
+            ExtractPipelinePolicy extractPipelinePolicy,
+            ExtractQueryService extractQueryService
+    ) {
+        return new ExtractDatasetCommandService(
+                extractDatasetStorePort,
+                connectionEndpointPort,
+                extractStagingPort,
+                extractCodeMappingPort,
+                extractExportPort,
+                extractPipelinePolicy,
+                extractQueryService
+        );
     }
 }

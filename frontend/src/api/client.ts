@@ -12,12 +12,46 @@ export function setUserId(userId: string) {
 
 export class ApiClientError extends Error {
   status: number
+  code?: string
   body?: ApiError
+  path?: string
 
-  constructor(status: number, message: string, body?: ApiError) {
+  constructor(status: number, message: string, body?: ApiError, path?: string) {
     super(message)
+    this.name = 'ApiClientError'
     this.status = status
+    this.code = body?.code
     this.body = body
+    this.path = path
+  }
+}
+
+export function toErrorMessage(error: unknown, fallback = '요청 처리 중 오류가 발생했습니다.'): string {
+  if (error instanceof ApiClientError) {
+    return error.message || fallback
+  }
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  return fallback
+}
+
+async function parseErrorBody(response: Response): Promise<ApiError | undefined> {
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    return undefined
+  }
+  try {
+    return (await response.json()) as ApiError
+  } catch (parseError) {
+    if (import.meta.env.DEV) {
+      console.warn('API 오류 응답 JSON 파싱 실패', {
+        status: response.status,
+        url: response.url,
+        parseError,
+      })
+    }
+    return undefined
   }
 }
 
@@ -31,20 +65,25 @@ export async function apiFetch<T>(
   }
   headers.set('userId', getUserId())
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  } catch (networkError) {
+    const message =
+      networkError instanceof TypeError
+        ? '서버에 연결할 수 없습니다. 네트워크 상태와 백엔드 기동 여부를 확인하세요.'
+        : toErrorMessage(networkError, '네트워크 오류가 발생했습니다.')
+    throw new ApiClientError(0, message, undefined, path)
+  }
 
   if (!response.ok) {
-    let body: ApiError | undefined
-    try {
-      body = (await response.json()) as ApiError
-    } catch {
-      /* empty */
-    }
-    throw new ApiClientError(
-      response.status,
-      body?.message ?? `HTTP ${response.status}`,
-      body,
-    )
+    const body = await parseErrorBody(response)
+    const message =
+      body?.message?.trim() ||
+      (response.status >= 500
+        ? '서버 오류가 발생했습니다. 잠시 후 다시 시도하세요.'
+        : `요청이 실패했습니다. (HTTP ${response.status})`)
+    throw new ApiClientError(response.status, message, body, path)
   }
 
   if (response.status === 204) {
@@ -55,5 +94,15 @@ export async function apiFetch<T>(
   if (!text) {
     return undefined as T
   }
-  return JSON.parse(text) as T
+
+  try {
+    return JSON.parse(text) as T
+  } catch (parseError) {
+    throw new ApiClientError(
+      response.status,
+      '서버 응답을 해석할 수 없습니다.',
+      undefined,
+      path,
+    )
+  }
 }

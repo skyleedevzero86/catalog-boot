@@ -1,3 +1,19 @@
+/*
+ * ============================================================================
+ * V4__procedures.sql (PostgreSQL 전용)
+ * ----------------------------------------------------------------------------
+ * 목적   : 연결 프로필 CUD 프로시저 및 업무 ID 채번 함수
+ * 대상   : PostgreSQL plpgsql / etl_data
+ * 의존   : V1, V3 (t_etl_seq)
+ * 계약   : p_op = 'C'|'U'|'D'. C 시 ID 미입력 시 fn_next_etl_id 로 발급.
+ * 주의   : 비밀번호는 애플리케이션에서 암호화한 뒤 p_enpswd 로 전달.
+ * ============================================================================
+ */
+
+-- ---------------------------------------------------------------------------
+-- fn_next_etl_id : 일자별 순번 채번. 형식 {prefix}-{YYYYMMDD}-{NNN}
+-- 동시성 : 동일 (seq_key, seq_dt) 행 UPDATE 로 직렬화. 없으면 INSERT.
+-- ---------------------------------------------------------------------------
 create or replace function fn_next_etl_id(p_prefix varchar)
 returns varchar
 language plpgsql
@@ -21,6 +37,10 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- sp_lnkg_profile : 연결 프로필 C/U/D
+-- p_op='C' 신규(암호문 필수), 'U' 부분갱신(coalesce), 'D' soft-delete(DELETED)
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_lnkg_profile(
     p_op char(1), inout p_lnkg_id varchar,
     p_lnkg_nm varchar default null, p_db_type_cd varchar default null,
@@ -66,6 +86,10 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- sp_mig_job : 마이그레이션 배치 헤더 C/U/D. ID 접두어 etl-
+-- U 는 상태·집계 컬럼 중심 부분갱신. D 는 CASCADE 로 상세(t_mig_job_tbl) 삭제.
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_mig_job(
     p_op char(1), inout p_mig_job_id varchar,
     p_src_lnkg_id varchar default null, p_trgt_lnkg_id varchar default null, p_mtdt_id varchar default null,
@@ -108,6 +132,9 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- sp_mig_job_tbl : 테이블 단위 적재 이력 C/U/D. ID 접두어 migt-
+-- ---------------------------------------------------------------------------
 create or replace procedure sp_mig_job_tbl(
     p_op char(1), inout p_mig_job_tbl_id varchar,
     p_mig_job_id varchar default null, p_tbl_nm varchar default null,

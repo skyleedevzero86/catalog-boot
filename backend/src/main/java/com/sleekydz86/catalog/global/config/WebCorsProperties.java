@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
 
-@ConfigurationProperties(prefix = "cdw.catalog.web.cors")
+@ConfigurationProperties(prefix = "com.sleekydz86.catalog.web.cors")
 public record WebCorsProperties(
         List<String> allowedOriginPatterns,
         List<String> allowedMethods,
