@@ -45,8 +45,28 @@ public class StagingMybatisGateway {
         }
     }
 
+    public void requireSpVendor(DatabaseEndpoint endpoint) {
+        DatabaseVendor vendor = endpoint.vendor();
+        if (vendor != DatabaseVendor.POSTGRESQL
+                && vendor != DatabaseVendor.MYSQL
+                && vendor != DatabaseVendor.MARIADB
+                && vendor != DatabaseVendor.ORACLE) {
+            throw new IllegalArgumentException(
+                    "sp_cdw_stg_* 는 PostgreSQL/MySQL/MariaDB/Oracle 만 지원합니다. vendor=" + vendor
+            );
+        }
+    }
+
+    public boolean supportsStoredProcedures(DatabaseEndpoint endpoint) {
+        DatabaseVendor vendor = endpoint.vendor();
+        return vendor == DatabaseVendor.POSTGRESQL
+                || vendor == DatabaseVendor.MYSQL
+                || vendor == DatabaseVendor.MARIADB
+                || vendor == DatabaseVendor.ORACLE;
+    }
+
     public void run(DatabaseEndpoint endpoint, Consumer<StagingTableCommandMapper> action) {
-        requirePostgreSQL(endpoint);
+        requireSpVendor(endpoint);
         String key = poolKey(endpoint);
         SqlSessionFactory factory = factories.computeIfAbsent(key, ignored -> createFactory(endpoint, key));
         try (SqlSession session = factory.openSession(true)) {
@@ -193,14 +213,26 @@ public class StagingMybatisGateway {
     private HikariDataSource createDataSource(DatabaseEndpoint endpoint) {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(JdbcUrlFactory.jdbcUrl(endpoint));
-        config.setDriverClassName("org.postgresql.Driver");
+        config.setDriverClassName(driverClassName(endpoint.vendor()));
         config.setUsername(endpoint.username());
         config.setPassword(endpoint.password());
         config.setMaximumPoolSize(4);
         config.setMinimumIdle(1);
-        config.setPoolName("cdw-stg-mybatis");
+        config.setPoolName("cdw-stg-mybatis-" + endpoint.vendor().name().toLowerCase());
         config.setConnectionTimeout(10_000L);
         return new HikariDataSource(config);
+    }
+
+    private static String driverClassName(DatabaseVendor vendor) {
+        return switch (vendor) {
+            case POSTGRESQL -> "org.postgresql.Driver";
+            case MYSQL -> "com.mysql.cj.jdbc.Driver";
+            case MARIADB -> "org.mariadb.jdbc.Driver";
+            case ORACLE -> "oracle.jdbc.OracleDriver";
+            case CLICKHOUSE -> throw new IllegalArgumentException(
+                    "ClickHouse는 sp_cdw_stg_* 대상이 아닙니다."
+            );
+        };
     }
 
     private String resolveSchema(DatabaseEndpoint endpoint, String schemaName) {
@@ -210,11 +242,17 @@ public class StagingMybatisGateway {
         if (endpoint.schemaName() != null && !endpoint.schemaName().isBlank()) {
             return endpoint.schemaName().trim();
         }
+        if (endpoint.vendor() == DatabaseVendor.MYSQL || endpoint.vendor() == DatabaseVendor.MARIADB) {
+            return endpoint.database();
+        }
+        if (endpoint.vendor() == DatabaseVendor.ORACLE) {
+            return endpoint.username();
+        }
         return "public";
     }
 
     private String poolKey(DatabaseEndpoint endpoint) {
-        return endpoint.host() + "|" + endpoint.port() + "|" + endpoint.database() + "|"
+        return endpoint.vendor() + "|" + endpoint.host() + "|" + endpoint.port() + "|" + endpoint.database() + "|"
                 + endpoint.username() + "|pwd=" + Integer.toHexString(Objects.hashCode(endpoint.password()));
     }
 

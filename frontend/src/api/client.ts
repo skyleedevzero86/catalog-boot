@@ -60,7 +60,7 @@ export async function apiFetch<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const headers = new Headers(options.headers)
-  if (!headers.has('Content-Type') && options.body) {
+  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
   headers.set('userId', getUserId())
@@ -105,4 +105,48 @@ export async function apiFetch<T>(
       path,
     )
   }
+}
+
+export type BlobDownload = {
+  blob: Blob
+  fileName: string
+}
+
+export async function apiDownload(
+  path: string,
+  options: RequestInit = {},
+): Promise<BlobDownload> {
+  const headers = new Headers(options.headers)
+  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json')
+  }
+  headers.set('userId', getUserId())
+
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  } catch (networkError) {
+    const message =
+      networkError instanceof TypeError
+        ? '서버에 연결할 수 없습니다. 네트워크 상태와 백엔드 기동 여부를 확인하세요.'
+        : toErrorMessage(networkError, '네트워크 오류가 발생했습니다.')
+    throw new ApiClientError(0, message, undefined, path)
+  }
+
+  if (!response.ok) {
+    const body = await parseErrorBody(response)
+    const message =
+      body?.message?.trim() ||
+      (response.status >= 500
+        ? '서버 오류가 발생했습니다. 잠시 후 다시 시도하세요.'
+        : `요청이 실패했습니다. (HTTP ${response.status})`)
+    throw new ApiClientError(response.status, message, body, path)
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? ''
+  const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition)
+  const rawName = match?.[1] || match?.[2] || 'download.bin'
+  const fileName = decodeURIComponent(rawName)
+  const blob = await response.blob()
+  return { blob, fileName }
 }

@@ -153,6 +153,7 @@ public class GlobalExceptionHandler {
             case MIGRATION_FAILED,
                  METADATA_SYNC_FAILED,
                  EXTRACT_FAILED,
+                 FILE_LOAD_FAILED,
                  INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }

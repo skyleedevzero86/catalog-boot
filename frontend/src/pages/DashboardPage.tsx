@@ -30,6 +30,11 @@ const links = [
     title: '추출',
     desc: 'prepare → CSV/Parquet → cleanup',
   },
+  {
+    to: '/file-load',
+    title: '파일 적재',
+    desc: '연결 점검 → 테이블/양식 → 엑셀·CSV 업로드',
+  },
 ]
 
 export function DashboardPage() {

@@ -201,3 +201,39 @@ export interface ApiError {
   path?: string
   code?: string
 }
+
+export interface FileLoadProbeResult {
+  connectionId: string
+  connected: boolean
+  message: string
+}
+
+export interface FileTableSummary {
+  tableName: string
+  remarks?: string
+}
+
+export interface FileColumnDef {
+  name: string
+  sqlType: string
+  nullable: boolean
+  comment?: string
+}
+
+export interface CreateFileTableRequest {
+  connectionId: string
+  schemaName?: string
+  tableName: string
+  tableComment?: string
+  columns: FileColumnDef[]
+}
+
+export interface FileLoadResult {
+  connectionId: string
+  schemaName: string
+  tableName: string
+  insertedRows: number
+  message: string
+}
+
+export type SpreadsheetFormat = 'csv' | 'xlsx' | 'xls'

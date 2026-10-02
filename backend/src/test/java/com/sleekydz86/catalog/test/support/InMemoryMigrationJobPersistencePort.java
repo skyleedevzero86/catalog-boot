@@ -1,5 +1,13 @@
 package com.sleekydz86.catalog.test.support;
 
+import com.sleekydz86.catalog.domain.migration.model.LoadTableResult;
+import com.sleekydz86.catalog.domain.migration.model.MigrationJob;
+import com.sleekydz86.catalog.domain.migration.model.MigrationJobStatus;
+import com.sleekydz86.catalog.domain.migration.model.MigrationJobTable;
+import com.sleekydz86.catalog.domain.migration.model.MigrationTableStatus;
+import com.sleekydz86.catalog.domain.migration.model.StartBatchMigrationCommand;
+import com.sleekydz86.catalog.domain.migration.model.StartSyncMigrationCommand;
+import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 
 import java.time.Instant;
 import java.util.ArrayList;

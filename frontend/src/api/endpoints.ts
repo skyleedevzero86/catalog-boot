@@ -165,3 +165,13 @@ export {
   getDataset,
 } from './extract'
 export type { PrepareExtractRequest, ExportDatasetRequest } from './extract'
+
+export {
+  probeFileLoadConnection,
+  listFileLoadTables,
+  listFileLoadColumns,
+  createFileLoadTable,
+  downloadFileLoadTemplate,
+  downloadFileLoadTemplateForColumns,
+  uploadFileLoad,
+} from './fileLoad'

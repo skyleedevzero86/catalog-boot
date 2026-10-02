@@ -1,7 +1,15 @@
 package com.sleekydz86.catalog.test.support;
 
-
 import com.sleekydz86.catalog.domain.connection.model.DatabaseVendor;
+import com.sleekydz86.catalog.domain.migration.model.ColumnSchema;
+import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
+import com.sleekydz86.catalog.domain.migration.model.SourceTableDescriptor;
+import com.sleekydz86.catalog.domain.migration.model.TableSchema;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceDataReaderPort;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceMetadataPort;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceTableBatchReader;
+import com.sleekydz86.catalog.domain.migration.port.out.TargetDatabasePort;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

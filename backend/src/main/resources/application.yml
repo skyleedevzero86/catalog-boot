@@ -68,10 +68,15 @@ com:
             - "*"
           exposed-headers:
             - Location
+            - Content-Disposition
           max-age: 1h
 
 server:
   port: 8081
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
 
 springdoc:
   api-docs:

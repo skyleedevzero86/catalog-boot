@@ -7,6 +7,7 @@ import { MetaPage } from './pages/MetaPage'
 import { CategoryPage } from './pages/CategoryPage'
 import { MigrationPage } from './pages/MigrationPage'
 import { ExtractPage } from './pages/ExtractPage'
+import { FileLoadPage } from './pages/FileLoadPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="category" element={<CategoryPage />} />
             <Route path="migration" element={<MigrationPage />} />
             <Route path="extract" element={<ExtractPage />} />
+            <Route path="file-load" element={<FileLoadPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

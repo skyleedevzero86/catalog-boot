@@ -17,6 +17,9 @@ import com.sleekydz86.catalog.domain.extract.service.ExtractDatasetCommandServic
 import com.sleekydz86.catalog.domain.extract.service.ExtractQueryService;
 import com.sleekydz86.catalog.domain.extract.service.ExtractRequestCommandService;
 import com.sleekydz86.catalog.domain.connection.port.out.ConnectionEndpointPort;
+import com.sleekydz86.catalog.domain.fileload.port.out.FileLoadTargetPort;
+import com.sleekydz86.catalog.domain.fileload.port.out.SpreadsheetDocumentPort;
+import com.sleekydz86.catalog.domain.fileload.service.FileLoadCommandService;
 import com.sleekydz86.catalog.domain.migration.port.out.DdlTypeMapperPort;
 import com.sleekydz86.catalog.domain.migration.port.out.MigrationJobPersistencePort;
 import com.sleekydz86.catalog.domain.migration.port.out.SourceDataReaderPort;
@@ -140,6 +143,25 @@ public class DomainServiceConfig {
                 extractExportPort,
                 extractPipelinePolicy,
                 extractQueryService
+        );
+    }
+
+    @Bean
+    FileLoadCommandService fileLoadCommandService(
+            ConnectionPersistencePort connectionPersistencePort,
+            ConnectionTestPort connectionTestPort,
+            SecretCipherPort secretCipherPort,
+            SourceMetadataPort sourceMetadataPort,
+            FileLoadTargetPort fileLoadTargetPort,
+            SpreadsheetDocumentPort spreadsheetDocumentPort
+    ) {
+        return new FileLoadCommandService(
+                connectionPersistencePort,
+                connectionTestPort,
+                secretCipherPort,
+                sourceMetadataPort,
+                fileLoadTargetPort,
+                spreadsheetDocumentPort
         );
     }
 }

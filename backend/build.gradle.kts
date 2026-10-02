@@ -48,6 +48,8 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.oracle.database.jdbc:ojdbc11:23.26.2.0.0")
     runtimeOnly("com.clickhouse:clickhouse-jdbc:0.9.8")
+    implementation("org.apache.poi:poi:5.4.1")
+    implementation("org.apache.poi:poi-ooxml:5.4.1")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("com.h2database:h2")
