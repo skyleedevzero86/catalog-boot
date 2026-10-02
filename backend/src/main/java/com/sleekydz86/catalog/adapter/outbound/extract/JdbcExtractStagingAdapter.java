@@ -55,8 +55,7 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
             String sql = switch (staging.vendor()) {
                 case POSTGRESQL -> "DROP TABLE IF EXISTS " + qualified + " CASCADE";
                 case MYSQL, MARIADB, CLICKHOUSE -> "DROP TABLE IF EXISTS " + qualified;
-                case ORACLE -> "BEGIN EXECUTE IMMEDIATE 'DROP TABLE " + qualified
-                        + "'; EXCEPTION WHEN OTHERS THEN NULL; END;";
+                case ORACLE -> JdbcSqlDialect.oracleDropTablePlSql(qualified);
             };
             try (Statement statement = connection.createStatement()) {
                 statement.execute(sql);
@@ -85,7 +84,8 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
 
         String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), schemaName, staging.schemaName(), tableName);
         String ddl = switch (staging.vendor()) {
-            case CLICKHOUSE -> "CREATE TABLE " + qualified + " (\n" + body + "\n) ENGINE = MergeTree() ORDER BY __row_no";
+            case CLICKHOUSE -> "CREATE TABLE " + qualified + " (\n" + body + "\n) ENGINE = MergeTree() ORDER BY "
+                    + JdbcSqlDialect.quoteIdentifier(staging.vendor(), "__row_no");
             default -> "CREATE TABLE " + qualified + " (\n" + body + "\n)";
         };
         jdbcConnectionProvider.runWithRetry(staging, connection -> {
@@ -117,7 +117,9 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
                 if (rows.isEmpty()) {
                     break;
                 }
-                inserted += insertStagingBatch(staging, stagingSchema, stagingTableName, physicalColumnNames, rows, rowNo);
+                inserted += insertStagingBatch(
+                        staging, stagingSchema, stagingTableName, sourceColumnKeys, physicalColumnNames, rows, rowNo
+                );
                 rowNo += rows.size();
             }
         }
@@ -147,7 +149,9 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
                     if (rows.isEmpty()) {
                         break;
                     }
-                    inserted += insertStagingBatch(staging, stagingSchema, stagingTableName, physicalColumnNames, rows, rowNo);
+                    inserted += insertStagingBatch(
+                            staging, stagingSchema, stagingTableName, sourceColumnKeys, physicalColumnNames, rows, rowNo
+                    );
                     rowNo += rows.size();
                 }
             } finally {
@@ -183,12 +187,19 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
             DatabaseEndpoint staging,
             String stagingSchema,
             String stagingTableName,
+            List<String> sourceColumnKeys,
             List<String> physicalColumnNames,
             List<Map<String, Object>> rows,
             long rowNoStart
     ) {
         if (rows.isEmpty()) {
             return 0;
+        }
+        if (sourceColumnKeys.size() != physicalColumnNames.size()) {
+            throw new IllegalArgumentException(
+                    "원천 컬럼 수와 스테이징 물리 컬럼 수가 일치하지 않습니다: source="
+                            + sourceColumnKeys.size() + ", physical=" + physicalColumnNames.size()
+            );
         }
         String qualified = JdbcSqlDialect.qualifiedName(staging.vendor(), stagingSchema, staging.schemaName(), stagingTableName);
         List<String> columns = new ArrayList<>();
@@ -206,7 +217,7 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
                 long rowNo = rowNoStart;
                 for (Map<String, Object> row : rows) {
                     rowNo++;
-                    List<String> values = physicalColumnNames.stream()
+                    List<String> values = sourceColumnKeys.stream()
                             .map(key -> stringify(row.get(key)))
                             .toList();
                     String hash = JdbcSqlDialect.rowHash(values.toArray(String[]::new));
@@ -234,16 +245,18 @@ public class JdbcExtractStagingAdapter implements ExtractStagingPort {
     }
 
     private String dedupSql(DatabaseVendor vendor, String rawQualified, String finalQualified) {
+        String rowNo = JdbcSqlDialect.quoteIdentifier(vendor, "__row_no");
+        String rowHash = JdbcSqlDialect.quoteIdentifier(vendor, "__row_hash");
         return switch (vendor) {
-            case POSTGRESQL -> "CREATE TABLE " + finalQualified + " AS SELECT DISTINCT ON (__row_hash) * FROM "
-                    + rawQualified + " ORDER BY __row_hash, __row_no";
+            case POSTGRESQL -> "CREATE TABLE " + finalQualified + " AS SELECT DISTINCT ON (" + rowHash + ") * FROM "
+                    + rawQualified + " ORDER BY " + rowHash + ", " + rowNo;
             case MYSQL, MARIADB -> "CREATE TABLE " + finalQualified + " AS SELECT r.* FROM " + rawQualified + " r INNER JOIN ("
-                    + "SELECT __row_hash, MIN(__row_no) AS mn FROM " + rawQualified + " GROUP BY __row_hash"
-                    + ") d ON r.__row_hash = d.__row_hash AND r.__row_no = d.mn";
-            case ORACLE -> "CREATE TABLE " + finalQualified + " AS SELECT r.* FROM " + rawQualified + " r WHERE r.__row_no IN ("
-                    + "SELECT MIN(__row_no) FROM " + rawQualified + " GROUP BY __row_hash)";
-            case CLICKHOUSE -> "CREATE TABLE " + finalQualified + " ENGINE = MergeTree() ORDER BY __row_no AS SELECT * FROM "
-                    + rawQualified + " LIMIT 1 BY __row_hash";
+                    + "SELECT " + rowHash + ", MIN(" + rowNo + ") AS mn FROM " + rawQualified + " GROUP BY " + rowHash
+                    + ") d ON r." + rowHash + " = d." + rowHash + " AND r." + rowNo + " = d.mn";
+            case ORACLE -> "CREATE TABLE " + finalQualified + " AS SELECT r.* FROM " + rawQualified + " r WHERE r." + rowNo
+                    + " IN (SELECT MIN(" + rowNo + ") FROM " + rawQualified + " GROUP BY " + rowHash + ")";
+            case CLICKHOUSE -> "CREATE TABLE " + finalQualified + " ENGINE = MergeTree() ORDER BY " + rowNo
+                    + " AS SELECT * FROM " + rawQualified + " LIMIT 1 BY " + rowHash;
         };
     }
 

@@ -69,7 +69,8 @@ public class JdbcConnectionProvider {
 
     private HikariDataSource poolFor(DatabaseEndpoint endpoint) {
         String key = endpoint.vendor() + "|" + endpoint.host() + "|" + endpoint.port()
-                + "|" + endpoint.database() + "|" + endpoint.username();
+                + "|" + endpoint.database() + "|" + endpoint.username()
+                + "|pwd=" + Integer.toHexString(java.util.Objects.hashCode(endpoint.password()));
         return pools.computeIfAbsent(key, ignored -> createPool(endpoint));
     }
 

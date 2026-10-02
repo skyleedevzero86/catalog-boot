@@ -175,8 +175,7 @@ public class JdbcExtractCodeMappingAdapter implements ExtractCodeMappingPort {
             String sql = switch (staging.vendor()) {
                 case POSTGRESQL -> "DROP TABLE IF EXISTS " + qualified + " CASCADE";
                 case MYSQL, MARIADB, CLICKHOUSE -> "DROP TABLE IF EXISTS " + qualified;
-                case ORACLE -> "BEGIN EXECUTE IMMEDIATE 'DROP TABLE " + qualified
-                        + "'; EXCEPTION WHEN OTHERS THEN NULL; END;";
+                case ORACLE -> JdbcSqlDialect.oracleDropTablePlSql(qualified);
             };
             try (Statement statement = connection.createStatement()) {
                 statement.execute(sql);

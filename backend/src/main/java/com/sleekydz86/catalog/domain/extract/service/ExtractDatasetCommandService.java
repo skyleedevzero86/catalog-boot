@@ -102,6 +102,7 @@ public class ExtractDatasetCommandService {
         );
 
         long duplicateCount = 0;
+        long rowCount = loaded;
         String activeTable = rawTable;
         if (command.deduplicate()) {
             ExtractStagingPort.DedupResult dedupResult = extractStagingPort.deduplicate(
@@ -111,6 +112,7 @@ public class ExtractDatasetCommandService {
                     finalTable
             );
             duplicateCount = dedupResult.duplicateCount();
+            rowCount = dedupResult.finalCount();
             activeTable = finalTable;
             extractStagingPort.dropTableIfExists(command.staging(), command.stagingSchema(), rawTable);
         }
@@ -142,7 +144,7 @@ public class ExtractDatasetCommandService {
                 command.codeMappings(),
                 mappingTables,
                 command.deduplicate(),
-                loaded,
+                rowCount,
                 duplicateCount,
                 ExtractDatasetStatus.PREPARED,
                 List.of(),
@@ -154,7 +156,7 @@ public class ExtractDatasetCommandService {
         return new PrepareExtractResult(
                 datasetId,
                 ExtractDatasetStatus.PREPARED,
-                loaded,
+                rowCount,
                 duplicateCount,
                 activeTable,
                 mappingTables

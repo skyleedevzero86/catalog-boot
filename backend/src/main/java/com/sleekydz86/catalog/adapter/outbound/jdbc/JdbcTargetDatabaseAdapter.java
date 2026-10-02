@@ -80,7 +80,7 @@ public class JdbcTargetDatabaseAdapter implements TargetDatabasePort {
         return switch (vendor) {
             case POSTGRESQL -> "DROP TABLE IF EXISTS " + qualifiedTable + " CASCADE";
             case MYSQL, MARIADB -> "DROP TABLE IF EXISTS " + qualifiedTable;
-            case ORACLE -> "BEGIN EXECUTE IMMEDIATE 'DROP TABLE " + qualifiedTable + "'; EXCEPTION WHEN OTHERS THEN NULL; END;";
+            case ORACLE -> JdbcSqlDialect.oracleDropTablePlSql(qualifiedTable);
             case CLICKHOUSE -> "DROP TABLE IF EXISTS " + qualifiedTable;
         };
     }

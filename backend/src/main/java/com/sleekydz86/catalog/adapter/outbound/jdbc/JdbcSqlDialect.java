@@ -94,6 +94,11 @@ public final class JdbcSqlDialect {
         };
     }
 
+    public static String oracleDropTablePlSql(String qualifiedTable) {
+        String escaped = qualifiedTable.replace("'", "''");
+        return "BEGIN EXECUTE IMMEDIATE 'DROP TABLE " + escaped + "'; EXCEPTION WHEN OTHERS THEN NULL; END;";
+    }
+
     public static String qualifiedName(DatabaseVendor vendor, String schemaName, String tableName) {
         if (schemaName == null || schemaName.isBlank()) {
             return quoteIdentifier(vendor, tableName);

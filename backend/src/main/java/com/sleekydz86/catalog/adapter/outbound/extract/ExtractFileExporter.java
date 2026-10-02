@@ -276,10 +276,25 @@ public class ExtractFileExporter implements ExtractExportPort {
     }
 
     private Path resolveOutputDir(String datasetId, String outputPath) {
+        Path exportRoot = Path.of(extractModuleProperties.exportRoot()).toAbsolutePath().normalize();
+        Path resolved;
         if (outputPath != null && !outputPath.isBlank()) {
-            return Path.of(outputPath);
+            Path candidate = Path.of(outputPath);
+            if (candidate.isAbsolute()) {
+                throw new IllegalArgumentException(
+                        "출력 경로는 export 루트 기준 상대 경로여야 합니다: " + outputPath
+                );
+            }
+            resolved = exportRoot.resolve(candidate).normalize();
+        } else {
+            resolved = exportRoot.resolve(datasetId).normalize();
         }
-        return Path.of(extractModuleProperties.exportRoot(), datasetId);
+        if (!resolved.startsWith(exportRoot)) {
+            throw new IllegalArgumentException(
+                    "출력 경로는 export 루트 하위여야 합니다: " + outputPath
+            );
+        }
+        return resolved;
     }
 
     private String normalizeFormat(String outputFormat) {
