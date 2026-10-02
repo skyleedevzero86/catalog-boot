@@ -4,6 +4,7 @@ import com.sleekydz86.catalog.domain.fileload.model.ConnectionProbeResult;
 import com.sleekydz86.catalog.domain.fileload.model.FileColumnDef;
 import com.sleekydz86.catalog.domain.fileload.model.FileLoadResult;
 import com.sleekydz86.catalog.domain.fileload.model.FileTableSummary;
+import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetDbExport;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetFormat;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetTemplate;
 import com.sleekydz86.catalog.global.application.FileLoadApplicationService;
@@ -11,6 +12,7 @@ import com.sleekydz86.catalog.global.config.openapi.OpenApiResponses;
 import com.sleekydz86.catalog.global.exception.BusinessException;
 import com.sleekydz86.catalog.global.exception.ErrorCode;
 import com.sleekydz86.catalog.global.exception.InfrastructureException;
+import com.sleekydz86.catalog.global.security.AuthenticatedUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,14 +42,19 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/file-load")
-@Tag(name = "07-파일 적재")
+@Tag(name = "07-파일 적재/추출")
 @Validated
 public class FileLoadController {
 
     private final FileLoadApplicationService fileLoadApplicationService;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
-    public FileLoadController(FileLoadApplicationService fileLoadApplicationService) {
+    public FileLoadController(
+            FileLoadApplicationService fileLoadApplicationService,
+            AuthenticatedUserProvider authenticatedUserProvider
+    ) {
         this.fileLoadApplicationService = fileLoadApplicationService;
+        this.authenticatedUserProvider = authenticatedUserProvider;
     }
 
     @PostMapping("/probe")
@@ -176,6 +183,28 @@ public class FileLoadController {
         }
     }
 
+    @PostMapping("/export")
+    @Operation(
+            summary = "DB 테이블 → 엑셀/CSV 추출",
+            description = """
+                    등록 연결에서 선택한 테이블(또는 스키마 전체)을 파일로 추출합니다.
+                    - xlsx/xls: 1시트=목차(추출시각·계정·테이블별 건수), 이후 시트=테이블별 표
+                    - csv: 테이블 1개만 (상단에 목차 메타, 이어서 데이터)
+                    """
+    )
+    @OpenApiResponses
+    public ResponseEntity<ByteArrayResource> exportDb(@Valid @RequestBody FileLoadWebDto.DbExportRequest request) {
+        SpreadsheetDbExport exported = fileLoadApplicationService.exportTables(
+                request.connectionId(),
+                request.schemaName(),
+                request.tableNames(),
+                Boolean.TRUE.equals(request.allTables()),
+                SpreadsheetFormat.from(request.format()),
+                authenticatedUserProvider.currentUserId()
+        );
+        return toExportDownload(exported);
+    }
+
     private FileLoadWebDto.TableSummaryResponse toTableResponse(FileTableSummary summary) {
         return new FileLoadWebDto.TableSummaryResponse(summary.name(), summary.remarks());
     }
@@ -187,5 +216,14 @@ public class FileLoadController {
                 .contentType(MediaType.parseMediaType(template.contentType()))
                 .contentLength(template.content().length)
                 .body(new ByteArrayResource(template.content()));
+    }
+
+    private ResponseEntity<ByteArrayResource> toExportDownload(SpreadsheetDbExport exported) {
+        String encoded = URLEncoder.encode(exported.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded)
+                .contentType(MediaType.parseMediaType(exported.contentType()))
+                .contentLength(exported.content().length)
+                .body(new ByteArrayResource(exported.content()));
     }
 }

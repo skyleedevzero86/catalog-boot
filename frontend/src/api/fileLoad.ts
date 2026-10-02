@@ -89,3 +89,15 @@ export const uploadFileLoad = (
     body: form,
   })
 }
+
+export const exportDbToSpreadsheet = (body: {
+  connectionId: string
+  schemaName?: string
+  tableNames?: string[]
+  allTables?: boolean
+  format: SpreadsheetFormat
+}) =>
+  apiDownload('/api/v1/file-load/export', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })

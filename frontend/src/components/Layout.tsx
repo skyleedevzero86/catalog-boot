@@ -9,7 +9,7 @@ const nav = [
   { to: '/category', label: '카테고리' },
   { to: '/migration', label: '마이그레이션' },
   { to: '/extract', label: '추출' },
-  { to: '/file-load', label: '파일 적재' },
+  { to: '/file-load', label: '파일 적재/추출' },
 ]
 
 export function Layout() {

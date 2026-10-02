@@ -1,5 +1,7 @@
 package com.sleekydz86.catalog.adapter.outbound.fileload;
 
+import com.sleekydz86.catalog.domain.fileload.model.ExportedTableData;
+import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetDbExport;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetFormat;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetTemplate;
 import com.sleekydz86.catalog.domain.fileload.port.out.SpreadsheetDocumentPort;
@@ -23,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -227,5 +230,162 @@ public class ApachePoiSpreadsheetAdapter implements SpreadsheetDocumentPort {
         }
         values.add(current.toString().trim());
         return values;
+    }
+
+    @Override
+    public SpreadsheetDbExport buildDbExport(
+            SpreadsheetFormat format,
+            String connectionId,
+            String extractedBy,
+            Instant extractedAt,
+            List<ExportedTableData> tables
+    ) {
+        if (tables == null || tables.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "추출할 테이블이 없습니다.");
+        }
+        if (format == SpreadsheetFormat.CSV && tables.size() > 1) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "CSV는 테이블 1개만 지원합니다. 여러 테이블은 xlsx 또는 xls를 선택하세요."
+            );
+        }
+        try {
+            byte[] content = switch (format) {
+                case CSV -> buildCsvDbExport(connectionId, extractedBy, extractedAt, tables.get(0));
+                case XLSX -> buildWorkbookDbExport(new XSSFWorkbook(), connectionId, extractedBy, extractedAt, tables, false);
+                case XLS -> buildWorkbookDbExport(new HSSFWorkbook(), connectionId, extractedBy, extractedAt, tables, true);
+            };
+            long total = tables.stream().mapToLong(ExportedTableData::rowCount).sum();
+            String stamp = extractedAt.toString().replace(':', '-');
+            return new SpreadsheetDbExport(
+                    "db_export_" + stamp + "." + format.fileExtension(),
+                    format.contentType(),
+                    content,
+                    extractedAt,
+                    extractedBy,
+                    connectionId,
+                    tables,
+                    total
+            );
+        } catch (IOException exception) {
+            throw InfrastructureException.of(
+                    ErrorCode.FILE_EXPORT_FAILED,
+                    "DB 추출 파일 생성에 실패했습니다. format=" + format,
+                    exception
+            );
+        }
+    }
+
+    private byte[] buildCsvDbExport(
+            String connectionId,
+            String extractedBy,
+            Instant extractedAt,
+            ExportedTableData table
+    ) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (Writer writer = new OutputStreamWriter(output, StandardCharsets.UTF_8)) {
+            writer.write(escapeCsv("항목") + "," + escapeCsv("값") + "\n");
+            writer.write(escapeCsv("추출시각") + "," + escapeCsv(extractedAt.toString()) + "\n");
+            writer.write(escapeCsv("추출계정") + "," + escapeCsv(nullToEmpty(extractedBy)) + "\n");
+            writer.write(escapeCsv("연결ID") + "," + escapeCsv(nullToEmpty(connectionId)) + "\n");
+            writer.write(escapeCsv("스키마") + "," + escapeCsv(nullToEmpty(table.schemaName())) + "\n");
+            writer.write(escapeCsv("테이블") + "," + escapeCsv(table.tableName()) + "\n");
+            writer.write(escapeCsv("건수") + "," + table.rowCount() + "\n");
+            writer.write("\n");
+            writer.write(String.join(",", table.columnNames().stream().map(this::escapeCsv).toList()));
+            writer.write("\n");
+            for (List<String> row : table.rows()) {
+                writer.write(String.join(",", row.stream().map(v -> escapeCsv(nullToEmpty(v))).toList()));
+                writer.write("\n");
+            }
+        }
+        return output.toByteArray();
+    }
+
+    private byte[] buildWorkbookDbExport(
+            Workbook workbook,
+            String connectionId,
+            String extractedBy,
+            Instant extractedAt,
+            List<ExportedTableData> tables,
+            boolean xlsLimit
+    ) throws IOException {
+        try (workbook) {
+            writeTocSheet(workbook, connectionId, extractedBy, extractedAt, tables);
+            for (ExportedTableData table : tables) {
+                writeDataSheet(workbook, table, xlsLimit);
+            }
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            workbook.write(output);
+            return output.toByteArray();
+        }
+    }
+
+    private void writeTocSheet(
+            Workbook workbook,
+            String connectionId,
+            String extractedBy,
+            Instant extractedAt,
+            List<ExportedTableData> tables
+    ) {
+        Sheet toc = workbook.createSheet("목차");
+        int rowIdx = 0;
+        rowIdx = writeKv(toc, rowIdx, "추출시각", extractedAt.toString());
+        rowIdx = writeKv(toc, rowIdx, "추출계정", nullToEmpty(extractedBy));
+        rowIdx = writeKv(toc, rowIdx, "연결ID", nullToEmpty(connectionId));
+        rowIdx = writeKv(toc, rowIdx, "총테이블수", String.valueOf(tables.size()));
+        long total = tables.stream().mapToLong(ExportedTableData::rowCount).sum();
+        rowIdx = writeKv(toc, rowIdx, "총건수", String.valueOf(total));
+        rowIdx++;
+
+        Row header = toc.createRow(rowIdx++);
+        String[] headers = {"번호", "스키마", "테이블명", "시트명", "건수", "추출시각", "추출계정"};
+        for (int i = 0; i < headers.length; i++) {
+            header.createCell(i).setCellValue(headers[i]);
+        }
+        int seq = 1;
+        for (ExportedTableData table : tables) {
+            Row row = toc.createRow(rowIdx++);
+            row.createCell(0).setCellValue(seq++);
+            row.createCell(1).setCellValue(nullToEmpty(table.schemaName()));
+            row.createCell(2).setCellValue(table.tableName());
+            row.createCell(3).setCellValue(table.sheetName());
+            row.createCell(4).setCellValue(table.rowCount());
+            row.createCell(5).setCellValue(extractedAt.toString());
+            row.createCell(6).setCellValue(nullToEmpty(extractedBy));
+        }
+    }
+
+    private int writeKv(Sheet sheet, int rowIdx, String key, String value) {
+        Row row = sheet.createRow(rowIdx);
+        row.createCell(0).setCellValue(key);
+        row.createCell(1).setCellValue(value);
+        return rowIdx + 1;
+    }
+
+    private void writeDataSheet(Workbook workbook, ExportedTableData table, boolean xlsLimit) {
+        Sheet sheet = workbook.createSheet(table.sheetName());
+        Row header = sheet.createRow(0);
+        List<String> columns = table.columnNames();
+        for (int i = 0; i < columns.size(); i++) {
+            header.createCell(i).setCellValue(columns.get(i));
+        }
+        int maxDataRows = xlsLimit ? 65_535 : Integer.MAX_VALUE;
+        int written = 0;
+        for (List<String> dataRow : table.rows()) {
+            if (written >= maxDataRows) {
+                break;
+            }
+            Row row = sheet.createRow(written + 1);
+            for (int c = 0; c < columns.size(); c++) {
+                String value = c < dataRow.size() ? dataRow.get(c) : "";
+                row.createCell(c).setCellValue(nullToEmpty(value));
+            }
+            written++;
+        }
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 }

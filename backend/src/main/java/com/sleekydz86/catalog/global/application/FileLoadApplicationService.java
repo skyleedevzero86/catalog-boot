@@ -4,6 +4,7 @@ import com.sleekydz86.catalog.domain.fileload.model.ConnectionProbeResult;
 import com.sleekydz86.catalog.domain.fileload.model.FileColumnDef;
 import com.sleekydz86.catalog.domain.fileload.model.FileLoadResult;
 import com.sleekydz86.catalog.domain.fileload.model.FileTableSummary;
+import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetDbExport;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetFormat;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetTemplate;
 import com.sleekydz86.catalog.domain.fileload.service.FileLoadCommandService;
@@ -72,5 +73,23 @@ public class FileLoadApplicationService {
             InputStream inputStream
     ) {
         return fileLoadCommandService.upload(connectionId, schemaName, tableName, format, inputStream);
+    }
+
+    public SpreadsheetDbExport exportTables(
+            String connectionId,
+            String schemaName,
+            List<String> tableNames,
+            boolean allTables,
+            SpreadsheetFormat format,
+            String actorId
+    ) {
+        return fileLoadCommandService.exportTables(
+                connectionId,
+                schemaName,
+                tableNames,
+                allTables,
+                format,
+                actorId
+        );
     }
 }

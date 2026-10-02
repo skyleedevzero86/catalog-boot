@@ -80,4 +80,14 @@ public final class FileLoadWebDto {
             String message
     ) {
     }
+
+    @Schema(name = "DbExportRequest")
+    public record DbExportRequest(
+            @NotBlank String connectionId,
+            String schemaName,
+            List<String> tableNames,
+            Boolean allTables,
+            @NotBlank String format
+    ) {
+    }
 }

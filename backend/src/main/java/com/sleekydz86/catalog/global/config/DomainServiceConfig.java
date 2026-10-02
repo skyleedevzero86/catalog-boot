@@ -152,6 +152,7 @@ public class DomainServiceConfig {
             ConnectionTestPort connectionTestPort,
             SecretCipherPort secretCipherPort,
             SourceMetadataPort sourceMetadataPort,
+            SourceDataReaderPort sourceDataReaderPort,
             FileLoadTargetPort fileLoadTargetPort,
             SpreadsheetDocumentPort spreadsheetDocumentPort
     ) {
@@ -160,6 +161,7 @@ public class DomainServiceConfig {
                 connectionTestPort,
                 secretCipherPort,
                 sourceMetadataPort,
+                sourceDataReaderPort,
                 fileLoadTargetPort,
                 spreadsheetDocumentPort
         );

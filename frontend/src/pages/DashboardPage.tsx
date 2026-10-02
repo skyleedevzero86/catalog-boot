@@ -32,8 +32,8 @@ const links = [
   },
   {
     to: '/file-load',
-    title: '파일 적재',
-    desc: '연결 점검 → 테이블/양식 → 엑셀·CSV 업로드',
+    title: '파일 적재/추출',
+    desc: '엑셀→DB 적재 · DB→엑셀(목차+시트별 테이블) 추출',
   },
 ]
 

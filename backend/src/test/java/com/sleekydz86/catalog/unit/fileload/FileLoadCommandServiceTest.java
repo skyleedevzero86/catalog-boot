@@ -4,7 +4,9 @@ import com.sleekydz86.catalog.domain.connection.model.ConnectionHealthStatus;
 import com.sleekydz86.catalog.domain.connection.model.ConnectionProfile;
 import com.sleekydz86.catalog.domain.connection.port.out.ConnectionTestPort;
 import com.sleekydz86.catalog.domain.fileload.model.ConnectionProbeResult;
+import com.sleekydz86.catalog.domain.fileload.model.ExportedTableData;
 import com.sleekydz86.catalog.domain.fileload.model.FileColumnDef;
+import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetDbExport;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetFormat;
 import com.sleekydz86.catalog.domain.fileload.model.SpreadsheetTemplate;
 import com.sleekydz86.catalog.domain.fileload.port.out.FileLoadTargetPort;
@@ -14,7 +16,9 @@ import com.sleekydz86.catalog.domain.migration.model.ColumnSchema;
 import com.sleekydz86.catalog.domain.migration.model.DatabaseEndpoint;
 import com.sleekydz86.catalog.domain.migration.model.SourceTableDescriptor;
 import com.sleekydz86.catalog.domain.migration.model.TableSchema;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceDataReaderPort;
 import com.sleekydz86.catalog.domain.migration.port.out.SourceMetadataPort;
+import com.sleekydz86.catalog.domain.migration.port.out.SourceTableBatchReader;
 import com.sleekydz86.catalog.global.exception.BusinessException;
 import com.sleekydz86.catalog.global.exception.ErrorCode;
 import com.sleekydz86.catalog.test.support.InMemoryConnectionPersistencePort;
@@ -24,7 +28,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,6 +57,7 @@ class FileLoadCommandServiceTest {
                 connectionTest,
                 new InMemoryConnectionPersistencePort.PlainSecretCipherPort(),
                 metadata,
+                new FakeSourceDataReader(),
                 target,
                 spreadsheet
         );
@@ -171,6 +178,51 @@ class FileLoadCommandServiceTest {
         }
     }
 
+    private static final class FakeSourceDataReader implements SourceDataReaderPort {
+        @Override
+        public SourceTableBatchReader openTableReader(
+                DatabaseEndpoint source,
+                String schemaName,
+                String tableName,
+                List<String> columnNames,
+                int batchSize
+        ) {
+            return new SourceTableBatchReader() {
+                private boolean done;
+
+                @Override
+                public List<Map<String, Object>> readNextBatch() {
+                    if (done) {
+                        return List.of();
+                    }
+                    done = true;
+                    return List.of();
+                }
+
+                @Override
+                public long rowsRead() {
+                    return 0;
+                }
+
+                @Override
+                public void close() {
+                }
+            };
+        }
+
+        @Override
+        public List<Map<String, Object>> readRows(
+                DatabaseEndpoint source,
+                String schemaName,
+                String tableName,
+                List<String> columnNames,
+                int batchSize,
+                int offset
+        ) {
+            return List.of();
+        }
+    }
+
     private static final class FakeSpreadsheetDocument implements SpreadsheetDocumentPort {
         private List<List<String>> rows = List.of();
 
@@ -186,6 +238,27 @@ class FileLoadCommandServiceTest {
                 List<String> expectedColumns
         ) {
             return rows;
+        }
+
+        @Override
+        public SpreadsheetDbExport buildDbExport(
+                SpreadsheetFormat format,
+                String connectionId,
+                String extractedBy,
+                Instant extractedAt,
+                List<ExportedTableData> tables
+        ) {
+            long total = tables.stream().mapToLong(ExportedTableData::rowCount).sum();
+            return new SpreadsheetDbExport(
+                    "export.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    new byte[]{1},
+                    extractedAt,
+                    extractedBy,
+                    connectionId,
+                    tables,
+                    total
+            );
         }
     }
 }

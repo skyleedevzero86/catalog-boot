@@ -174,4 +174,5 @@ export {
   downloadFileLoadTemplate,
   downloadFileLoadTemplateForColumns,
   uploadFileLoad,
+  exportDbToSpreadsheet,
 } from './fileLoad'
